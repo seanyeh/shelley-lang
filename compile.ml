@@ -17,7 +17,7 @@ let string_of_id scope id = string_of_scope scope ^ "__" ^ id
 let create_inner_scope parent name =
     Scope(name, parent, Hashtbl.create 10)
 
-let add_to_scope scope var = match scope with
+let _add_to_scope_ scope var = match scope with
 |   None -> raise (Failure ("Non-existent scope"))
 |   Scope(_, _, vars_tbl) -> Hashtbl.replace vars_tbl var ""
 
@@ -76,7 +76,7 @@ let rec bytecode_of_funccall ?(arg_scope = temp_scope) id expr_list scope =
                 ) [] expr_list
     in
     (* Find function in scope *)
-    let scoped_fid = string_of_id scope id in
+    let scoped_fid = find_in_scope scope id in
 
     let func_args_list =
         (* Use string_of_id instead of find_in_scope because func (temp) args
@@ -87,11 +87,12 @@ let rec bytecode_of_funccall ?(arg_scope = temp_scope) id expr_list scope =
         temp_args_stmts @ [funccall]
 
 
-(* Side-effect: adds variable to scope *)
-and assign_id ?(temp = false) ?(arg_scope = None) var_id bexpr scope =
+(* Adds variable to scope 
+ * !! SIDE EFFECT !!*)
+and _assign_id_ ?(temp = false) ?(arg_scope = None) ?(var_type = "var") var_id bexpr scope =
 
     (* Add non-temp variable to scope hashtable *)
-    (if not temp then (add_to_scope scope var_id));
+    (if not temp then (_add_to_scope_ scope var_id));
 
     (* Use string_of_id for temp variable, find_in_scope otherwise *)
     let scoped_id = if temp then    (string_of_id arg_scope var_id)
@@ -109,16 +110,16 @@ and bytecode_of_asn ?(temp = false) ?(arg_scope = temp_scope) id expr scope =
             let batom_id2 = Bytecode.BAtom(Bytecode.BId(scoped_id2)) in
             
             (bytecode_of_asn id2 expr2 scope) @ 
-                [assign_id id batom_id2 scope ~temp:temp ~arg_scope:arg_scope]
+                [_assign_id_ id batom_id2 scope ~temp:temp ~arg_scope:arg_scope]
 
         (* Assign scoped_id <- __RET for FuncCall *)
     |   FuncCall(fid, fexpr_list) ->
             let return_id = Bytecode.BAtom(Bytecode.BId("__RET")) in
                 (bytecode_of_funccall fid fexpr_list scope ~arg_scope:arg_scope)
-                @ [assign_id id return_id scope ~temp:temp ~arg_scope:arg_scope]
+                @ [_assign_id_ id return_id scope ~temp:temp ~arg_scope:arg_scope]
 
         (* Otherwise, e is Lit, Id, or Binop *)
-    |   e -> [assign_id id (bytecode_of_expr e scope) scope
+    |   e -> [_assign_id_ id (bytecode_of_expr e scope) scope
                 ~temp:temp ~arg_scope:arg_scope]
 
 
@@ -134,9 +135,12 @@ and bytecode_of_stmt stmt scope = match stmt with
             bytecode_of_funccall id expr_list scope
             )
 
-|   Funcdef(f, var_args_list, stmt_list) -> 
-        let inner_scope = create_inner_scope scope f in
-        [Bytecode.BFuncdef(f, var_args_list, 
+|   Funcdef(fid, var_args_list, stmt_list) -> 
+        let inner_scope = create_inner_scope scope fid in
+        (* Side Effect! *)
+        _add_to_scope_ scope fid;
+
+        [Bytecode.BFuncdef(fid, var_args_list, 
             bytecode_of_stmt_list ~scope:inner_scope stmt_list)]
 
 

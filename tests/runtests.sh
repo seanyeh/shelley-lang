@@ -1,3 +1,9 @@
 #!/bin/bash
-for f in tests/*.test; do echo "File: $f"; cat $f | ./main.native; done
+for f in tests/*.test; do
+    echo ""
+    echo "File: $f";
+    cat $f
+    echo "--------"
+    cat $f | ./main.native;
+done
 
