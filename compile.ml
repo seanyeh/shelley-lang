@@ -135,12 +135,12 @@ and bytecode_of_stmt stmt scope = match stmt with
             bytecode_of_funccall id expr_list scope
             )
 
-|   Funcdef(fid, var_args_list, stmt_list) -> 
+|   FuncDef(fid, var_args_list, stmt_list) ->
         let inner_scope = create_inner_scope scope fid in
         (* Side Effect! *)
         _add_to_scope_ scope fid;
 
-        [Bytecode.BFuncdef(fid, var_args_list, 
+        [Bytecode.BFuncDef(fid, var_args_list,
             bytecode_of_stmt_list ~scope:inner_scope stmt_list)]
 
 

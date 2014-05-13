@@ -28,7 +28,7 @@ type bexpr =
 type bstmt =
     BAsn of string * bexpr
     (* BAsn of string * batom *)
-|   BFuncdef of string * Ast.var_args list * bstmt list
+|   BFuncDef of string * Ast.var_args list * bstmt list
 |   BFuncCall of string * bexpr list
 
 type program =

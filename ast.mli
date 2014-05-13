@@ -16,7 +16,7 @@ var_args =
 
 type stmt =
     Expr of expr
-|   Funcdef of string * var_args list * stmt list
+|   FuncDef of string * var_args list * stmt list
 
 
 type program = {

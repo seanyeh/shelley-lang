@@ -80,5 +80,5 @@ var_args:
 
 
 funcdef:
-    DEF ID LPAREN var_args RPAREN COLON suite { Funcdef($2, $4, $7) }
+    DEF ID LPAREN var_args RPAREN COLON suite { FuncDef($2, $4, $7) }
 
