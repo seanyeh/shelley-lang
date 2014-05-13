@@ -20,15 +20,26 @@ program:
     /* nothing */ { {stmt_list=[]} }
 |   stmt_list EOF { {stmt_list=$1} }
 
+atom:
+    LITERAL     { Lit($1) }
+|   ID          { Id($1) }
 
 expr:
-    expr PLUS   expr    { Binop($1, Add, $3) }
+    atom                { $1 }
+|   expr PLUS   expr    { Binop($1, Add, $3) }
 |   expr MINUS  expr    { Binop($1, Sub, $3) }
 |   expr TIMES  expr    { Binop($1, Mul, $3) }
 |   expr DIVIDE expr    { Binop($1, Div, $3) }
-|   LITERAL             { Lit($1) }
 |   ID ASN expr        { Asn($1, $3) }
-|   ID                  { Id($1) }
+|   ID expr_list {FuncCall($1, $2)}
+
+expr_list_items:
+    expr    { [$1] }
+|   expr_list_items COMMA expr_list_items { $1 @ $3 }
+
+expr_list:
+    LPAREN RPAREN {[]}
+|   LPAREN expr_list_items RPAREN {$2}
 
 
 small_stmt:
@@ -67,9 +78,7 @@ var_args:
     ID    { [Var($1)] }
 |   var_args COMMA var_args { $1 @ $3 }
 
-var_args_list:
-    LPAREN var_args RPAREN {$2}
 
 funcdef:
-    DEF ID var_args_list COLON suite { Funcdef($2, $3, $5) }
+    DEF ID LPAREN var_args RPAREN COLON suite { Funcdef($2, $4, $7) }
 

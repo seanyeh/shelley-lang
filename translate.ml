@@ -29,8 +29,13 @@ and
 sh_of_bstmt bstmt = match bstmt with
 |   BAsn(id, e) -> id ^ "=" ^ (sh_of_bexpr e)
     (* BExpr(x, scope) -> sh_of_bexpr x scope *)
-|   BFuncdef(f, var_args_list, bstmt_list) -> 
+|   BFuncdef(f, var_args_list, bstmt_list) ->
         "function " ^ f ^ "(){\n" ^ sh_of_bstmt_list bstmt_list ^ "}"
+|   BFuncCall(f, bexpr_list) ->
+        let sh_bexpr_list = List.map sh_of_bexpr bexpr_list in
+        let args = List.fold_left (fun acc x -> acc ^ " " ^ x)
+            "" sh_bexpr_list in
+        f ^ args
         
 and
 

@@ -3,10 +3,10 @@
 (* type atom = *)
 (*     Lit of int *)
 
-type scope =
-    BScope of string list
+(* type scope = *)
+(*     BScope of string list *)
 
-let global_scope = BScope(["GLOBAL"])
+(* let global_scope = BScope(["GLOBAL"]) *)
 
 type batom =
     BLit of int
@@ -21,11 +21,15 @@ type bexpr =
     BAtom of batom
 |   BArith_Expr of barith_atom list
 
+(* BFuncCall can only be of BAtom or BArith_Expr, not BFuncCall *)
+(* |   BFuncCall of string * bexpr list *)
+
 
 type bstmt =
-    (* BExpr of bexpr * scope *)
     BAsn of string * bexpr
+    (* BAsn of string * batom *)
 |   BFuncdef of string * Ast.var_args list * bstmt list
+|   BFuncCall of string * bexpr list
 
 type program =
   BStmt_List of bstmt list
