@@ -74,11 +74,14 @@ dedent:
     |DEDENT end_stmt {}
 
 
-var_args:
+var_args_items:
     ID    { [Var($1)] }
-|   var_args COMMA var_args { $1 @ $3 }
+|   var_args_items COMMA var_args_items { $1 @ $3 }
 
+var_args:
+    LPAREN RPAREN {[]}
+|   LPAREN var_args_items RPAREN {$2}
 
 funcdef:
-    DEF ID LPAREN var_args RPAREN COLON suite { FuncDef($2, $4, $7) }
+    DEF ID var_args COLON suite { FuncDef($2, $3, $5) }
 
