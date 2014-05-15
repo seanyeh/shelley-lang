@@ -62,8 +62,11 @@ rule token =
     | '-'                       { MINUS }
     | '*'                       { TIMES }
     | '/'                       { DIVIDE }
-    | ['0'-'9']+ as lit         { LITERAL(int_of_string lit) }
+
     | "def "                     { DEF }
+    | "return "                 { RETURN }
+
+    | ['0'-'9']+ as lit         { LITERAL(int_of_string lit) }
     | ['a'-'z' 'A'-'Z' '_']['a'-'z' 'A'-'Z' '0'-'9' '_']* as lxm { ID(lxm) }
     | '='                       { ASN }
     | eof                       { EOF }

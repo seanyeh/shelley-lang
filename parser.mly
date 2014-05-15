@@ -1,7 +1,7 @@
 %{ open Ast %}
 
 %token PLUS MINUS TIMES DIVIDE EOF ASN SEQ NEWLINE SEMI END_STMT
-%token END DEF INDENT DEDENT COLON COMMA RPAREN LPAREN
+%token END DEF INDENT DEDENT COLON COMMA RPAREN LPAREN RETURN
 %token <int> LITERAL
 %token <string> ID
 
@@ -20,9 +20,13 @@ program:
     /* nothing */ { {stmt_list=[]} }
 |   stmt_list EOF { {stmt_list=$1} }
 
+
+id:
+    ID  {Id($1)}
+
 atom:
     LITERAL     { Lit($1) }
-|   ID          { Id($1) }
+|   id          { Var($1) }
 
 expr:
     atom                { $1 }
@@ -30,8 +34,8 @@ expr:
 |   expr MINUS  expr    { Binop($1, Sub, $3) }
 |   expr TIMES  expr    { Binop($1, Mul, $3) }
 |   expr DIVIDE expr    { Binop($1, Div, $3) }
-|   ID ASN expr        { Asn($1, $3) }
-|   ID expr_list {FuncCall($1, $2)}
+|   id ASN expr        { Asn($1, $3) }
+|   id expr_list {FuncCall($1, $2)}
 
 expr_list_items:
     expr    { [$1] }
@@ -46,8 +50,9 @@ small_stmt:
     expr    {Expr($1)}
 
 stmt:
-     small_stmt end_stmt { $1 }
-|    funcdef {$1}
+    small_stmt end_stmt { $1 }
+|   funcdef {$1}
+|   RETURN expr {Return($2)}
 
 
 end_token:
@@ -75,7 +80,7 @@ dedent:
 
 
 var_args_items:
-    ID    { [Var($1)] }
+    id    { [ArgVar($1)] }
 |   var_args_items COMMA var_args_items { $1 @ $3 }
 
 var_args:
@@ -83,5 +88,5 @@ var_args:
 |   LPAREN var_args_items RPAREN {$2}
 
 funcdef:
-    DEF ID var_args COLON suite { FuncDef($2, $3, $5) }
+    DEF id var_args COLON suite { FuncDef($2, $3, $5) }
 

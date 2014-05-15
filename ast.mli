@@ -1,22 +1,29 @@
 type operator = Add | Sub | Mul | Div
 
+type scope =
+|   Scope of string * scope * (string, string) Hashtbl.t
+|   None
+
+type var =
+|   Id of string
+|   BuiltinId of string * scope
+
 type expr =
-    Id of string
+    Var of var
 |   Binop of expr * operator * expr
 |   Lit of int
-|   Asn of string * expr
-|   FuncCall of string * expr list
+|   Asn of var * expr
+|   FuncCall of var * expr list
 and
 
 var_args =
-    Var of string
+    ArgVar of var
 |   Keyword of string * expr
-
-
 
 type stmt =
     Expr of expr
-|   FuncDef of string * var_args list * stmt list
+|   FuncDef of var * var_args list * stmt list
+|   Return of expr
 
 
 type program = {
