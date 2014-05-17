@@ -5,6 +5,10 @@ open Ast
 
 let __RET__ = BuiltinId("RET__", None)
 
+let is_temp var = match var with
+|   BuiltinId(_, _) -> true
+|   _ -> false
+
 
 let rec string_of_scope scope = match scope with
 |   None -> ""
@@ -89,7 +93,6 @@ and bytecode_of_funccall ?(arg_scope = temp_scope) id expr_list scope =
         List.fold_left (fun acc expr ->
             let temp_arg = string_of_int !arg_counter in
             let bytecode_of_e = bytecode_of_asn (BuiltinId(temp_arg, new_arg_scope)) expr scope
-                            ~temp:true
                             ~arg_scope:new_arg_scope
                 in
                     incr arg_counter;
@@ -110,16 +113,17 @@ and bytecode_of_funccall ?(arg_scope = temp_scope) id expr_list scope =
 
 (* Adds variable to scope 
  * !! SIDE EFFECT !!*)
-and _assign_id_ ?(temp = false) ?(arg_scope = None) var_id bexpr scope =
+and _assign_id_ ?(arg_scope = None) var bexpr scope =
 
     (* Add non-temp variable to scope hashtable *)
-    (if not temp then (_add_to_scope_ scope var_id));
+    (if not (is_temp var) then
+        (_add_to_scope_ scope var));
 
-    let scoped_id = (find_in_scope scope var_id) in
+    let scoped_id = (find_in_scope scope var) in
         Bytecode.BAsn(scoped_id, bexpr)
 
 (* Return list of Bytecode.bstmt *)
-and bytecode_of_asn ?(temp = false) ?(arg_scope = temp_scope) id expr scope =
+and bytecode_of_asn ?(arg_scope = temp_scope) var expr scope =
     match expr with
     |   Asn(id2, expr2) ->
             (* string_of_id instead of find_in_scope because id2 is not defined
@@ -131,19 +135,19 @@ and bytecode_of_asn ?(temp = false) ?(arg_scope = temp_scope) id expr scope =
             let batom_id2 = Bytecode.BAtom(Bytecode.BId(scoped_id2)) in
             
             (bytecode_of_asn id2 expr2 scope) @ 
-                [_assign_id_ id batom_id2 scope ~temp:temp ~arg_scope:arg_scope]
+                [_assign_id_ var batom_id2 scope ~arg_scope:arg_scope]
 
         (* Assign scoped_id <- __RET for FuncCall *)
     |   FuncCall(fid, fexpr_list) ->
             let _, return_id = bytecode_of_expr (Var(__RET__)) scope in
             (* let return_id = Bytecode.BAtom(Bytecode.BId("__RET")) in *)
                 (bytecode_of_funccall fid fexpr_list scope ~arg_scope:arg_scope)
-                @ [_assign_id_ id return_id scope ~temp:temp ~arg_scope:arg_scope]
+                @ [_assign_id_ var return_id scope ~arg_scope:arg_scope]
 
         (* Otherwise, e is Lit, Id, or Binop *)
     |   e -> let pre_stmts, bexpr = bytecode_of_expr e scope in
-            pre_stmts @ [_assign_id_ id bexpr scope
-                            ~temp:temp ~arg_scope:arg_scope]
+            pre_stmts @ [_assign_id_ var bexpr scope
+                            ~arg_scope:arg_scope]
 
 
 (* Return list of Bytecode.bstmt *)
