@@ -43,8 +43,10 @@ let rec find_in_scope ?(check = true) scope var = match var with
                 find_in_scope parent var
 )
 
+let global_scope = 
+    let scope = Scope("GLOBAL", None, Hashtbl.create 10) in
+    _add_to_scope_ scope (BuiltinId("print", None)); scope
 
-let global_scope = Scope("GLOBAL", None, Hashtbl.create 10)
 let temp_scope = Scope("TEMP", None, Hashtbl.create 10)
 
 let rec generate_temp_args arg_counter = match arg_counter with
@@ -70,6 +72,8 @@ let rec bytecode_of_binop binop scope = match binop with
         let _, barith_list = bytecode_of_binop (Var(__RET__)) scope
         in
         pre_stmts, barith_list
+|   Str(_) -> 
+        raise (Failure ("Strings do not support arithmetic operators"))
         
 
 
@@ -77,6 +81,7 @@ let rec bytecode_of_binop binop scope = match binop with
 (* lit,id,binop, NOT asn or funccall *)
 and bytecode_of_expr expr scope = match expr with
 |   Lit(x) -> [], Bytecode.BAtom(Bytecode.BLit(x))
+|   Str(x) -> [], Bytecode.BAtom(Bytecode.BStr(x))
 |   Var(var) -> let scoped_id = find_in_scope scope var in
         [], Bytecode.BAtom(Bytecode.BId(scoped_id))
 
@@ -154,7 +159,7 @@ and bytecode_of_asn ?(arg_scope = temp_scope) var expr scope =
 and bytecode_of_stmt stmt scope = match stmt with
 |   Expr(e) -> (match e with
         (* Ignore expressions by themselves *)
-        Lit(_) -> [] | Var(_) -> [] | Binop(_,_,_) -> []
+        Lit(_) -> [] | Str(_) -> [] | Var(_) -> [] | Binop(_,_,_) -> []
 
         (* Only Asn/FuncCall are valid expression as a statement *)
     |   Asn(id, e) -> bytecode_of_asn id e scope
@@ -167,7 +172,7 @@ and bytecode_of_stmt stmt scope = match stmt with
         (* Side Effect! *)
         _add_to_scope_ scope fid;
 
-        [Bytecode.BFuncDef((id_of_var fid), var_args_list,
+        [Bytecode.BFuncDef((find_in_scope scope fid), var_args_list,
             bytecode_of_stmt_list ~scope:inner_scope stmt_list)]
 |   Return(expr) ->
         bytecode_of_asn __RET__ expr scope

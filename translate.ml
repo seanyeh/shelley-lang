@@ -10,6 +10,7 @@ let string_of_op op = match op with
 
 let string_of_batom a =  match a with
     BLit(x) -> string_of_int(x)
+|   BStr(s) -> s
 |   BId(id) -> "$" ^ id
 
 
@@ -45,4 +46,6 @@ sh_of_bstmt_list bstmt_list =
 
 and
 sh_of_bytecode program = match program with
-    BStmt_List(l) -> sh_of_bstmt_list l
+    BStmt_List(l) -> 
+        Stdlib.source ^
+        sh_of_bstmt_list l

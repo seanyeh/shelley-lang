@@ -10,6 +10,7 @@
 
 type batom =
     BLit of int
+|   BStr of string
 |   BId of string
 
 type barith_atom =

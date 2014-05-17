@@ -4,6 +4,7 @@
 %token END DEF INDENT DEDENT COLON COMMA RPAREN LPAREN RETURN
 %token <int> LITERAL
 %token <string> ID
+%token <string> STRING
 
 %left COMMA
 %left SEMI END_STMT
@@ -26,6 +27,7 @@ id:
 
 atom:
     LITERAL     { Lit($1) }
+|   STRING      { Str($1) }
 |   id          { Var($1) }
 
 expr:

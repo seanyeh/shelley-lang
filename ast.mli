@@ -12,6 +12,7 @@ type expr =
     Var of var
 |   Binop of expr * operator * expr
 |   Lit of int
+|   Str of string
 |   Asn of var * expr
 |   FuncCall of var * expr list
 and
