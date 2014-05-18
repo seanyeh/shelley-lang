@@ -47,7 +47,7 @@ let global_scope =
     let scope = Scope("__GLOBAL", None, Hashtbl.create 10) in
     _add_to_scope_ scope (BuiltinId("print", None)); scope
 
-let temp_scope = Scope("TEMP", None, Hashtbl.create 10)
+let temp_scope = Scope("__TEMP", None, Hashtbl.create 10)
 
 let rec generate_temp_args arg_counter = match arg_counter with
 |   0 -> []
