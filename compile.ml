@@ -3,7 +3,7 @@ open Ast
 (* AST -> Bytecode *)
 
 
-let __RET__ = BuiltinId("RET__", None)
+let __RET__ = BuiltinId("__RET__", None)
 
 let is_temp var = match var with
 |   BuiltinId(_, _) -> true
@@ -12,9 +12,9 @@ let is_temp var = match var with
 
 let rec string_of_scope scope = match scope with
 |   None -> ""
-|   Scope(name, parent, vars) -> (string_of_scope parent) ^ "__" ^ name
+|   Scope(name, parent, vars) -> (string_of_scope parent) ^ name ^ "__"
 
-let string_of_id scope id = string_of_scope scope ^ "__" ^ id
+let string_of_id scope id = string_of_scope scope ^ id
 
 
 let create_inner_scope parent name =
@@ -44,7 +44,7 @@ let rec find_in_scope ?(check = true) scope var = match var with
 )
 
 let global_scope = 
-    let scope = Scope("GLOBAL", None, Hashtbl.create 10) in
+    let scope = Scope("__GLOBAL", None, Hashtbl.create 10) in
     _add_to_scope_ scope (BuiltinId("print", None)); scope
 
 let temp_scope = Scope("TEMP", None, Hashtbl.create 10)
@@ -118,7 +118,7 @@ and bytecode_of_funccall ?(arg_scope = temp_scope) id expr_list scope =
 
 (* Adds variable to scope 
  * !! SIDE EFFECT !!*)
-and _assign_id_ ?(arg_scope = None) var bexpr scope =
+and _assign_id_ var bexpr scope =
 
     (* Add non-temp variable to scope hashtable *)
     (if not (is_temp var) then
@@ -140,19 +140,18 @@ and bytecode_of_asn ?(arg_scope = temp_scope) var expr scope =
             let batom_id2 = Bytecode.BAtom(Bytecode.BId(scoped_id2)) in
             
             (bytecode_of_asn id2 expr2 scope) @ 
-                [_assign_id_ var batom_id2 scope ~arg_scope:arg_scope]
+                [_assign_id_ var batom_id2 scope]
 
         (* Assign scoped_id <- __RET for FuncCall *)
     |   FuncCall(fid, fexpr_list) ->
             let _, return_id = bytecode_of_expr (Var(__RET__)) scope in
             (* let return_id = Bytecode.BAtom(Bytecode.BId("__RET")) in *)
                 (bytecode_of_funccall fid fexpr_list scope ~arg_scope:arg_scope)
-                @ [_assign_id_ var return_id scope ~arg_scope:arg_scope]
+                @ [_assign_id_ var return_id scope]
 
         (* Otherwise, e is Lit, Id, or Binop *)
     |   e -> let pre_stmts, bexpr = bytecode_of_expr e scope in
-            pre_stmts @ [_assign_id_ var bexpr scope
-                            ~arg_scope:arg_scope]
+            pre_stmts @ [_assign_id_ var bexpr scope]
 
 
 (* Return list of Bytecode.bstmt *)
@@ -168,12 +167,44 @@ and bytecode_of_stmt stmt scope = match stmt with
             )
 
 |   FuncDef(fid, var_args_list, stmt_list) ->
-        let inner_scope = create_inner_scope scope (id_of_var fid) in
         (* Side Effect! *)
         _add_to_scope_ scope fid;
 
-        [Bytecode.BFuncDef((find_in_scope scope fid), var_args_list,
-            bytecode_of_stmt_list ~scope:inner_scope stmt_list)]
+        (* Create inner scope with function name *)
+        let inner_scope = create_inner_scope scope (id_of_var fid) in
+
+        let scoped_fid = find_in_scope scope fid in
+
+        let id_of_var_arg var_arg = match var_arg with
+        |   ArgVar(var) -> id_of_var var
+        (* Keyword? *)
+        in
+
+        let var_of_varargs va = match va with
+        |   ArgVar(v) -> v | Keyword(v, _) -> v in
+
+        (* After the function definition, assign named var_args to $1, $2... *)
+        let rec create_var_arg_stmts ?(i = 1) var_args_list =
+            match var_args_list with
+            |   [] -> []
+            |   x::xs ->
+                    let arg_i = (Var(BuiltinId(string_of_int i, None)))
+                    in
+
+                    (bytecode_of_asn (var_of_varargs x) arg_i inner_scope)
+                    @ (create_var_arg_stmts xs ~i:(i+1))
+        in
+        let var_arg_stmts = create_var_arg_stmts var_args_list in
+
+        (* Prepend func_stmts with var_arg_stmts *)
+        let func_stmts =
+            var_arg_stmts @
+            bytecode_of_stmt_list ~scope:inner_scope stmt_list in
+
+        let func_def = Bytecode.BFuncDef(scoped_fid, var_args_list, func_stmts) in
+
+        [func_def]
+
 |   Return(expr) ->
         bytecode_of_asn __RET__ expr scope
 

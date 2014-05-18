@@ -19,7 +19,7 @@ and
 
 var_args =
     ArgVar of var
-|   Keyword of string * expr
+|   Keyword of var * expr
 
 type stmt =
     Expr of expr
