@@ -131,7 +131,14 @@ and _assign_id_ var bexpr scope =
         (_add_to_scope_ scope var));
 
     let scoped_id = (find_in_scope scope var) in
-        Bytecode.BAsn(scoped_id, bexpr)
+    let expr_type = match bexpr with
+    |   Bytecode.BArith_Expr(_) -> "i"
+    |   Bytecode.BAtom(Bytecode.BLit(_)) -> "i"
+    |   Bytecode.BAtom(Bytecode.BId(_)) -> "v" (* variable type *)
+    |   _ -> "s"
+    in
+
+        Bytecode.BAsn(scoped_id, bexpr, expr_type)
 
 (* Return list of Bytecode.bstmt *)
 and bytecode_of_asn ?(arg_scope = temp_scope) var expr scope =
@@ -208,7 +215,8 @@ and bytecode_of_stmt stmt scope = match stmt with
         [func_def]
 
 |   Return(expr) ->
-        bytecode_of_asn __RET__ expr scope
+        bytecode_of_asn __RET__ expr scope @ [Bytecode.BReturn]
+
 
 
 
