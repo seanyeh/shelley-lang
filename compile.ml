@@ -76,10 +76,9 @@ let rec bytecode_of_binop binop scope = match binop with
         raise (Failure ("Strings do not support arithmetic operators"))
         
 
-
-
-(* lit,id,binop, NOT asn or funccall *)
+(* Returns stmt list , bexpr *)
 and bytecode_of_expr expr scope = match expr with
+
 |   Lit(x) -> [], Bytecode.BAtom(Bytecode.BLit(x))
 |   Str(x) -> [], Bytecode.BAtom(Bytecode.BStr(x))
 |   Var(var) -> let scoped_id = find_in_scope scope var in
@@ -89,6 +88,13 @@ and bytecode_of_expr expr scope = match expr with
         let pre_stmts, barith_atom_list = 
             bytecode_of_binop (Binop(e1, op, e2)) scope in
         pre_stmts, Bytecode.BArith_Expr(barith_atom_list)
+
+|   Asn(id, e) -> 
+        let pre_stmts = bytecode_of_asn id e scope in
+        let _, var_bexpr =  (bytecode_of_expr (Var(id)) scope) in
+        pre_stmts, var_bexpr
+|   FuncCall(id, expr_list) ->
+        bytecode_of_funccall id expr_list scope, NoBexpr
 
 
 and bytecode_of_funccall ?(arg_scope = temp_scope) id expr_list scope =
@@ -156,15 +162,10 @@ and bytecode_of_asn ?(arg_scope = temp_scope) var expr scope =
 
 (* Return list of Bytecode.bstmt *)
 and bytecode_of_stmt stmt scope = match stmt with
-|   Expr(e) -> (match e with
-        (* Ignore expressions by themselves *)
-        Lit(_) -> [] | Str(_) -> [] | Var(_) -> [] | Binop(_,_,_) -> []
+|   Expr(e) -> 
+        let stmts, _ = bytecode_of_expr e scope in
 
-        (* Only Asn/FuncCall are valid expression as a statement *)
-    |   Asn(id, e) -> bytecode_of_asn id e scope
-    |   FuncCall(id, expr_list) ->
-            bytecode_of_funccall id expr_list scope
-            )
+        stmts
 
 |   FuncDef(fid, var_args_list, stmt_list) ->
         (* Side Effect! *)
@@ -175,10 +176,10 @@ and bytecode_of_stmt stmt scope = match stmt with
 
         let scoped_fid = find_in_scope scope fid in
 
-        let id_of_var_arg var_arg = match var_arg with
-        |   ArgVar(var) -> id_of_var var
-        (* Keyword? *)
-        in
+        (* let id_of_var_arg var_arg = match var_arg with *)
+        (* |   ArgVar(var) -> id_of_var var *)
+        (* (* Keyword? *) *)
+        (* in *)
 
         let var_of_varargs va = match va with
         |   ArgVar(v) -> v | Keyword(v, _) -> v in
@@ -188,7 +189,8 @@ and bytecode_of_stmt stmt scope = match stmt with
             match var_args_list with
             |   [] -> []
             |   x::xs ->
-                    let arg_i = (Var(BuiltinId(string_of_int i, None)))
+                    let arg_name = "{" ^ string_of_int i ^ "}" in
+                    let arg_i = (Var(BuiltinId(arg_name, None)))
                     in
 
                     (bytecode_of_asn (var_of_varargs x) arg_i inner_scope)
