@@ -42,7 +42,7 @@ sh_of_bstmt bstmt = match bstmt with
             id ^ "=" ^ e_type ^ (sh_of_bexpr e)
 
 |   BFuncDef(f, var_args_list, bstmt_list) ->
-        "function " ^ f ^ "(){\n" ^ sh_of_bstmt_list bstmt_list ^ "}"
+        f ^ "(){\n" ^ sh_of_bstmt_list bstmt_list ^ "}"
 |   BFuncCall(f, bexpr_list) ->
         let sh_bexpr_list = List.map (sh_of_bexpr ~expand:false) bexpr_list in
         let args = List.fold_left (fun acc x -> acc ^ " " ^ x)

@@ -1,4 +1,4 @@
-all: main test
+all: main
 
 main:
 	ocamlbuild main.native
