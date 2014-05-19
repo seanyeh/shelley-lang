@@ -16,10 +16,12 @@ type bexpr =
 |   NoBexpr
 
 type bstmt =
-    BAsn of string * bexpr * string
+    BAsn of string * bexpr * string * bool
 |   BFuncDef of string * Ast.var_args list * bstmt list
 |   BFuncCall of string * bexpr list
 |   BReturn
+|   BLogical of Ast.logical_op * bstmt * bstmt
+|   BRaw of string
 
 type program =
   BStmt_List of bstmt list

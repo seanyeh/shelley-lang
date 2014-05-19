@@ -2,13 +2,16 @@
 
 %token PLUS MINUS TIMES DIVIDE EOF ASN SEQ NEWLINE SEMI END_STMT
 %token END DEF INDENT DEDENT COLON COMMA RPAREN LPAREN RETURN
+%token OR AND
 %token <int> LITERAL
 %token <string> ID
 %token <string> STRING
 
-%left COMMA
 %left SEMI END_STMT
+%left COMMA
 %left ASN
+%left OR
+%left AND
 %left PLUS MINUS
 %left TIMES DIVIDE
 
@@ -38,6 +41,7 @@ expr:
 |   expr DIVIDE expr    { Binop($1, Div, $3) }
 |   id ASN expr        { Asn($1, $3) }
 |   id expr_list {FuncCall($1, $2)}
+|   test                { $1 }
 
 expr_list_items:
     expr    { [$1] }
@@ -92,3 +96,6 @@ var_args:
 funcdef:
     DEF id var_args COLON suite { FuncDef($2, $3, $5) }
 
+test:
+    expr OR expr    { Logical(Or, $1, $3) }
+|   expr AND expr    { Logical(And, $1, $3) }

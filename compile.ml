@@ -49,6 +49,15 @@ let global_scope =
 
 let temp_scope = Scope("__TEMP", None, Hashtbl.create 10)
 
+
+let __TEMPFUNCS__ = ref 0
+
+let create_temp_func () =
+    let fid = "__TEMPFUNC__" ^ (string_of_int !__TEMPFUNCS__) in
+    incr __TEMPFUNCS__;
+    fid
+
+
 let rec generate_temp_args arg_counter = match arg_counter with
 |   0 -> []
 |   x -> (generate_temp_args (arg_counter - 1)) @
@@ -94,9 +103,43 @@ and bytecode_of_expr expr scope = match expr with
         let _, var_bexpr =  (bytecode_of_expr (Var(id)) scope) in
         pre_stmts, var_bexpr
 |   FuncCall(id, expr_list) ->
-        bytecode_of_funccall id expr_list scope, NoBexpr
+        bytecode_of_funccall id expr_list scope, Bytecode.NoBexpr
+|   Logical(op, e1, e2) ->
+        let temp_fid1 = create_temp_func () in
+        let temp_fid2 = create_temp_func () in
+
+        let temp_id = BuiltinId("TEMP", None) in
+        let temp_var = Var(temp_id) in
+        let _, bexpr = bytecode_of_expr temp_var scope in
+
+        let f1_stmts = 
+            (bytecode_of_asn temp_id e1 scope) @
+            (bytecode_of_stmt (Return(temp_var)) scope)
+        in
+        let f2_stmts = 
+            (bytecode_of_asn temp_id e2 scope) @
+            (bytecode_of_stmt (Return(temp_var)) scope)
+        in
+        
+        let func_defs = 
+            [Bytecode.BFuncDef(temp_fid1, [], f1_stmts)] @
+            [Bytecode.BFuncDef(temp_fid2, [], f2_stmts)]
+        
+        in
+        let stmts =
+            func_defs @
+            [Bytecode.BLogical(op,
+                Bytecode.BFuncCall(temp_fid1, []),
+                Bytecode.BFuncCall(temp_fid2, []))] @
+
+        (* To stay for now. TODO: change this in future *)
+            [Bytecode.BRaw("[ $? -ne 0 ] && TEMP=i0")]
+        in
+
+        stmts, bexpr
 
 
+(* return bstmt list *)
 and bytecode_of_funccall ?(arg_scope = temp_scope) id expr_list scope =
     let arg_counter = ref 0 in
     let new_arg_scope = (create_inner_scope arg_scope "ARG") in
@@ -124,7 +167,7 @@ and bytecode_of_funccall ?(arg_scope = temp_scope) id expr_list scope =
 
 (* Adds variable to scope 
  * !! SIDE EFFECT !!*)
-and _assign_id_ var bexpr scope =
+and _assign_id_ ?(deref = false) var bexpr scope =
 
     (* Add non-temp variable to scope hashtable *)
     (if not (is_temp var) then
@@ -137,11 +180,10 @@ and _assign_id_ var bexpr scope =
     |   Bytecode.BAtom(Bytecode.BId(_)) -> "v" (* variable type *)
     |   _ -> "s"
     in
-
-        Bytecode.BAsn(scoped_id, bexpr, expr_type)
+        Bytecode.BAsn(scoped_id, bexpr, expr_type, deref)
 
 (* Return list of Bytecode.bstmt *)
-and bytecode_of_asn ?(arg_scope = temp_scope) var expr scope =
+and bytecode_of_asn ?(arg_scope = temp_scope) ?(deref = false) var expr scope =
     match expr with
     |   Asn(id2, expr2) ->
             (* string_of_id instead of find_in_scope because id2 is not defined
@@ -164,7 +206,7 @@ and bytecode_of_asn ?(arg_scope = temp_scope) var expr scope =
 
         (* Otherwise, e is Lit, Id, or Binop *)
     |   e -> let pre_stmts, bexpr = bytecode_of_expr e scope in
-            pre_stmts @ [_assign_id_ var bexpr scope]
+            pre_stmts @ [_assign_id_ var bexpr scope ~deref:deref]
 
 
 (* Return list of Bytecode.bstmt *)
@@ -200,7 +242,8 @@ and bytecode_of_stmt stmt scope = match stmt with
                     let arg_i = (Var(BuiltinId(arg_name, None)))
                     in
 
-                    (bytecode_of_asn (var_of_varargs x) arg_i inner_scope)
+                    (bytecode_of_asn (var_of_varargs x) arg_i inner_scope
+                    ~deref:true)
                     @ (create_var_arg_stmts xs ~i:(i+1))
         in
         let var_arg_stmts = create_var_arg_stmts var_args_list in

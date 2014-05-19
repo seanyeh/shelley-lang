@@ -63,6 +63,8 @@ rule token =
     | '*'                       { TIMES }
     | '/'                       { DIVIDE }
 
+    | "or"                      { OR }
+    | "and"                     { AND }
     | "def "                     { DEF }
     | "return "                 { RETURN }
 
