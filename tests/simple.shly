@@ -1,0 +1,4 @@
+def f ( x ) :
+  a = 1 + 2
+  return a + x
+print(f(10))
