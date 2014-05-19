@@ -26,14 +26,14 @@ let string_of_batom ?(expand = true) ?(deref = false) a =  match a with
             else            expanded_id
 
 
-let string_of_barith_atom ?(expand = true) ?(val_of = false) batom = match batom with
+let string_of_barith_atom ?(expand = true) ?(deref = false) batom = match batom with
     BArith_Op(op) -> string_of_op op
-|   BArith_Atom(a) -> string_of_batom a ~expand:expand
+|   BArith_Atom(a) -> string_of_batom a ~expand:expand ~deref:deref
 
 let rec sh_of_bexpr ?(expand = true) ?(deref = false) bexpr = match bexpr with
     BAtom(a) -> string_of_batom a ~expand:expand ~deref:deref
 |   BArith_Expr(barith_atoms) -> 
-        let accum = (fun acc x -> acc ^ string_of_barith_atom x) in
+        let accum = (fun acc x -> acc ^ string_of_barith_atom x ~deref:true) in
         let expr_str = List.fold_left accum "" barith_atoms in
             "`expr " ^ expr_str ^ "`"
 
@@ -48,7 +48,7 @@ sh_of_bstmt bstmt = match bstmt with
 |   BFuncDef(f, var_args_list, bstmt_list) ->
         f ^ "(){\n" ^ sh_of_bstmt_list bstmt_list ^ "}"
 |   BFuncCall(f, bexpr_list) ->
-        let sh_bexpr_list = List.map (sh_of_bexpr ~expand:false) bexpr_list in
+        let sh_bexpr_list = List.map (sh_of_bexpr) bexpr_list in
         let args = List.fold_left (fun acc x -> acc ^ " " ^ x)
             "" sh_bexpr_list in
         f ^ args

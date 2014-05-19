@@ -112,19 +112,17 @@ and bytecode_of_expr expr scope = match expr with
         let temp_var = Var(temp_id) in
         let _, bexpr = bytecode_of_expr temp_var scope in
 
-        let f1_stmts = 
+        let f1_stmts =
             (bytecode_of_asn temp_id e1 scope) @
             (bytecode_of_stmt (Return(temp_var)) scope)
         in
-        let f2_stmts = 
+        let f2_stmts =
             (bytecode_of_asn temp_id e2 scope) @
             (bytecode_of_stmt (Return(temp_var)) scope)
         in
-        
-        let func_defs = 
+        let func_defs =
             [Bytecode.BFuncDef(temp_fid1, [], f1_stmts)] @
             [Bytecode.BFuncDef(temp_fid2, [], f2_stmts)]
-        
         in
         let stmts =
             func_defs @
@@ -242,8 +240,7 @@ and bytecode_of_stmt stmt scope = match stmt with
                     let arg_i = (Var(BuiltinId(arg_name, None)))
                     in
 
-                    (bytecode_of_asn (var_of_varargs x) arg_i inner_scope
-                    ~deref:true)
+                    (bytecode_of_asn (var_of_varargs x) arg_i inner_scope)
                     @ (create_var_arg_stmts xs ~i:(i+1))
         in
         let var_arg_stmts = create_var_arg_stmts var_args_list in
@@ -259,7 +256,6 @@ and bytecode_of_stmt stmt scope = match stmt with
 
 |   Return(expr) ->
         bytecode_of_asn __RET__ expr scope @ [Bytecode.BReturn]
-
 
 
 

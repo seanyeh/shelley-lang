@@ -1,5 +1,3 @@
-all: main
-
 main:
 	ocamlbuild main.native
 
@@ -11,3 +9,4 @@ clean:
 test: main
 	tests/runtests.sh
 
+all: main test

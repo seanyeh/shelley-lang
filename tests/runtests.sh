@@ -3,6 +3,7 @@
 declare -A TESTS=(
 [sum]=9
 [simple]=13
+[simple2]=3
 )
 
 failed=0
@@ -24,3 +25,5 @@ done
 
 echo "Passed: $passed, Failed: $failed"
 [ $failed -ne 0 ] && echo "Failed tests: $failed_tests"
+
+echo ""
