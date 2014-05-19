@@ -21,7 +21,7 @@ let string_of_batom ?(expand = true) ?(deref = false) a =  match a with
     BLit(x) -> string_of_int(x)
 |   BStr(s) -> s
 |   BId(id) ->
-        let expanded_id = if expand then "$" ^ id else id in
+        let expanded_id = if expand then "\"$" ^ id ^ "\"" else id in
             if deref then  val_of_id expanded_id
             else            expanded_id
 

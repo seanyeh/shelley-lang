@@ -4,6 +4,8 @@ declare -A TESTS=(
 [sum]=9
 [simple]=13
 [simple2]=3
+[indent]=1
+[white]="     a"
 )
 
 failed=0

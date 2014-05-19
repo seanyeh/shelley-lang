@@ -1,7 +1,7 @@
 __GLOBAL__print() {
     for var in "$@"
     do
-        printf $(__VAL__ $var)
+        printf "$(__VAL__ "$var")"
     done
     printf "\n"
 }
@@ -10,7 +10,7 @@ __VAL__() {
     if [ "$1" = "s" ]; then
         printf ""
     else
-        printf $(printf "$1" | tail -c $(expr ${#1} - 1))
+        printf "$(printf "$1" | tail -c $(expr ${#1} - 1))"
     fi
 }
 
