@@ -22,6 +22,7 @@ type bstmt =
 |   BReturn
 |   BLogical of Ast.logical_op * bstmt * bstmt
 |   BRaw of string
+|   BIf of string * bstmt list
 
 type program =
   BStmt_List of bstmt list

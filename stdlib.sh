@@ -7,9 +7,11 @@ __GLOBAL__print() {
 }
 
 __VAL__() {
-    # __TEMP__RAW=$(eval printf "$""$1")
-    # printf $(printf $__TEMP__RAW | tail -c $(expr ${#__TEMP__RAW} - 1))
-    printf $(printf "$1" | tail -c $(expr ${#1} - 1))
+    if [ "$1" = "s" ]; then
+        printf ""
+    else
+        printf $(printf "$1" | tail -c $(expr ${#1} - 1))
+    fi
 }
 
 __VAR__() {
@@ -18,12 +20,11 @@ __VAR__() {
 
 # if 0, return 1. else return 0
 __RETCODE__() {
-    __TEMP__t=`printf $__RET__ | head -c 1`
-    if [ __TEMP__t = "s" ]; then
-        return 0
+    __TEMP__t=`printf $1 | head -c 1`
+    __TEMP__v=$(__VAL__ $1)
+    if [ "$__TEMP__t" = "s" ]; then
+        [ "$__TEMP__v" != "" ]; return $?
     else
-        __TEMP__v=$(__VAL__ $__RET__)
-        [ "$__TEMP__v" -ne 0 ]
-        return $?
+        [ "$__TEMP__v" -ne 0 ]; return $?
     fi
 }

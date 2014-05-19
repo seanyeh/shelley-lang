@@ -53,9 +53,14 @@ sh_of_bstmt bstmt = match bstmt with
             "" sh_bexpr_list in
         f ^ args
 |   BReturn ->
-        "__RETCODE__; return $?"
+        "__RETCODE__ $__RET__; return $?"
 |   BLogical(op, bstmt1, bstmt2) ->
         sh_of_bstmt bstmt1 ^ string_of_logical_op op ^ sh_of_bstmt bstmt2
+|   BIf(bexpr, bstmt_list) ->
+        "__RETCODE__ $TEMPIF\n" ^
+        "if [ $? -eq 0 ]; then\n" ^
+        sh_of_bstmt_list bstmt_list ^
+        "fi"
 
     (* Used for debug only *)
 |   BRaw(s) -> s

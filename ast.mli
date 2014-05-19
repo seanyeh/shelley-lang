@@ -27,6 +27,7 @@ type stmt =
     Expr of expr
 |   FuncDef of var * var_args list * stmt list
 |   Return of expr
+|   If of expr * stmt list
 
 
 type program = {

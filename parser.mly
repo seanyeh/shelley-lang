@@ -3,6 +3,7 @@
 %token PLUS MINUS TIMES DIVIDE EOF ASN SEQ NEWLINE SEMI END_STMT
 %token END DEF INDENT DEDENT COLON COMMA RPAREN LPAREN RETURN
 %token OR AND
+%token IF
 %token <int> LITERAL
 %token <string> ID
 %token <string> STRING
@@ -59,6 +60,7 @@ stmt:
     small_stmt end_stmt { $1 }
 |   funcdef {$1}
 |   RETURN expr {Return($2)}
+|   if_stmt             { $1 }
 
 
 end_token:
@@ -99,3 +101,6 @@ funcdef:
 test:
     expr OR expr    { Logical(Or, $1, $3) }
 |   expr AND expr    { Logical(And, $1, $3) }
+
+if_stmt:
+    IF expr COLON suite { If($2, $4) }

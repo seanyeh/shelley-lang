@@ -9,4 +9,4 @@ clean:
 test: main
 	tests/runtests.sh
 
-all: main test
+all: clean main test

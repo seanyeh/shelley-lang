@@ -65,6 +65,9 @@ rule token =
 
     | "or"                      { OR }
     | "and"                     { AND }
+
+    | "if"                      { IF }
+
     | "def "                     { DEF }
     | "return "                 { RETURN }
 

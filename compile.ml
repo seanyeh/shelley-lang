@@ -257,6 +257,14 @@ and bytecode_of_stmt stmt scope = match stmt with
 |   Return(expr) ->
         bytecode_of_asn __RET__ expr scope @ [Bytecode.BReturn]
 
+|   If(expr, stmt_list) ->
+        let temp_id = BuiltinId("TEMPIF", None) in
+        let scoped_id = find_in_scope scope temp_id in
+        let bstmt_list = bytecode_of_stmt_list stmt_list ~scope:scope in
+
+        bytecode_of_asn temp_id expr scope @
+        [Bytecode.BIf(scoped_id, bstmt_list)]
+
 
 
 and bytecode_of_stmt_list ?(scope = global_scope) stmt_list =
