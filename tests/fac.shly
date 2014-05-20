@@ -1,0 +1,8 @@
+def fac(n):
+    if n:
+        prev = fac(n-1)
+        return n * prev
+    return 1
+
+
+print(fac(4))

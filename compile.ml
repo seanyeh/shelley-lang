@@ -90,8 +90,13 @@ and bytecode_of_expr expr scope = match expr with
 
 |   Lit(x) -> [], Bytecode.BAtom(Bytecode.BLit(x))
 |   Str(x) -> [], Bytecode.BAtom(Bytecode.BStr(x))
-|   Var(var) -> let scoped_id = find_in_scope scope var in
-        [], Bytecode.BAtom(Bytecode.BId(scoped_id))
+|   Var(var) -> 
+        let scoped_id = find_in_scope scope var in
+        let bid = (match var with
+        |   BuiltinId(_) -> Bytecode.BRawId(scoped_id)
+        |   Id(_) -> Bytecode.BId(scoped_id)
+        ) in
+        [], Bytecode.BAtom(bid)
 
 |   Binop(e1, op, e2) -> 
         let pre_stmts, barith_atom_list = 
@@ -157,7 +162,7 @@ and bytecode_of_funccall ?(arg_scope = temp_scope) id expr_list scope =
     let func_args_list =
         (* Use string_of_id instead of find_in_scope because func (temp) args
          * are not found in scope *)
-        List.map (fun x -> Bytecode.BAtom(Bytecode.BId(string_of_id new_arg_scope x)))
+        List.map (fun x -> Bytecode.BAtom(Bytecode.BRawId(string_of_id new_arg_scope x)))
         (generate_temp_args !arg_counter) in
     let funccall = Bytecode.BFuncCall(scoped_fid, func_args_list) in
         temp_args_stmts @ [funccall]
@@ -165,23 +170,31 @@ and bytecode_of_funccall ?(arg_scope = temp_scope) id expr_list scope =
 
 (* Adds variable to scope 
  * !! SIDE EFFECT !!*)
-and _assign_id_ ?(deref = false) var bexpr scope =
+and _assign_id_ var bexpr scope =
 
     (* Add non-temp variable to scope hashtable *)
     (if not (is_temp var) then
         (_add_to_scope_ scope var));
 
     let scoped_id = (find_in_scope scope var) in
+
+    (*this is repeated in bytecode_of_expr. TODO: share the code*)
+    let bid = (match var with
+        |   BuiltinId(_) -> Bytecode.BRawId(scoped_id)
+        |   Id(_) -> Bytecode.BId(scoped_id)
+    ) in
     let expr_type = match bexpr with
     |   Bytecode.BArith_Expr(_) -> "i"
     |   Bytecode.BAtom(Bytecode.BLit(_)) -> "i"
     |   Bytecode.BAtom(Bytecode.BId(_)) -> "v" (* variable type *)
+    |   Bytecode.BAtom(Bytecode.BRawId(_)) -> "v"
     |   _ -> "s"
     in
-        Bytecode.BAsn(scoped_id, bexpr, expr_type, deref)
+
+        Bytecode.BAsn(bid, bexpr, expr_type, (string_of_scope scope))
 
 (* Return list of Bytecode.bstmt *)
-and bytecode_of_asn ?(arg_scope = temp_scope) ?(deref = false) var expr scope =
+and bytecode_of_asn ?(arg_scope = temp_scope) var expr scope =
     match expr with
     |   Asn(id2, expr2) ->
             (* string_of_id instead of find_in_scope because id2 is not defined
@@ -204,7 +217,7 @@ and bytecode_of_asn ?(arg_scope = temp_scope) ?(deref = false) var expr scope =
 
         (* Otherwise, e is Lit, Id, or Binop *)
     |   e -> let pre_stmts, bexpr = bytecode_of_expr e scope in
-            pre_stmts @ [_assign_id_ var bexpr scope ~deref:deref]
+            pre_stmts @ [_assign_id_ var bexpr scope]
 
 
 (* Return list of Bytecode.bstmt *)
@@ -255,7 +268,7 @@ and bytecode_of_stmt stmt scope = match stmt with
         [func_def]
 
 |   Return(expr) ->
-        bytecode_of_asn __RET__ expr scope @ [Bytecode.BReturn]
+        bytecode_of_asn __RET__ expr scope @ [Bytecode.BReturn(string_of_scope scope)]
 
 |   If(expr, stmt_list) ->
         let temp_id = BuiltinId("TEMPIF", None) in

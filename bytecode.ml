@@ -4,6 +4,7 @@ type batom =
     BLit of int
 |   BStr of string
 |   BId of string
+|   BRawId of string
 
 type barith_atom =
     BArith_Atom of batom
@@ -16,10 +17,10 @@ type bexpr =
 |   NoBexpr
 
 type bstmt =
-    BAsn of string * bexpr * string * bool
+    BAsn of batom * bexpr * string * string
 |   BFuncDef of string * Ast.var_args list * bstmt list
 |   BFuncCall of string * bexpr list
-|   BReturn
+|   BReturn of string
 |   BLogical of Ast.logical_op * bstmt * bstmt
 |   BRaw of string
 |   BIf of string * bstmt list
