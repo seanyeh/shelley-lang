@@ -5,7 +5,7 @@ open Bytecode
 let string_of_op op = match op with
     Ast.Add -> " + "
 |   Ast.Sub -> " - "
-|   Ast.Mul -> " * "
+|   Ast.Mul -> " \* "
 |   Ast.Div -> " / "
 
 let string_of_logical_op op = match op with
