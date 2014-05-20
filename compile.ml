@@ -5,6 +5,7 @@ open Ast
 
 let __RET__ = BuiltinId("__RET__", None)
 
+
 let is_temp var = match var with
 |   BuiltinId(_, _) -> true
 |   _ -> false
@@ -64,6 +65,14 @@ let rec generate_temp_args arg_counter = match arg_counter with
             [string_of_int (arg_counter - 1)]
 
 
+
+let bytecode_of_var var scope =
+    let scoped_var = find_in_scope scope var in
+    match var with
+    |   BuiltinId(_, _) -> Bytecode.BRawId(scoped_var)
+    |   Id(_) -> Bytecode.BId(scoped_var)
+
+
 (* return list of barith_atom *)
 let rec bytecode_of_binop binop scope = match binop with
 |   Lit(x) -> [], [Bytecode.BArith_Atom(Bytecode.BLit(x))]
@@ -91,11 +100,8 @@ and bytecode_of_expr expr scope = match expr with
 |   Lit(x) -> [], Bytecode.BAtom(Bytecode.BLit(x))
 |   Str(x) -> [], Bytecode.BAtom(Bytecode.BStr(x))
 |   Var(var) -> 
-        let scoped_id = find_in_scope scope var in
-        let bid = (match var with
-        |   BuiltinId(_) -> Bytecode.BRawId(scoped_id)
-        |   Id(_) -> Bytecode.BId(scoped_id)
-        ) in
+        (* let scoped_id = find_in_scope scope var in *)
+        let bid = bytecode_of_var var scope in
         [], Bytecode.BAtom(bid)
 
 |   Binop(e1, op, e2) -> 
@@ -179,10 +185,7 @@ and _assign_id_ var bexpr scope =
     let scoped_id = (find_in_scope scope var) in
 
     (*this is repeated in bytecode_of_expr. TODO: share the code*)
-    let bid = (match var with
-        |   BuiltinId(_) -> Bytecode.BRawId(scoped_id)
-        |   Id(_) -> Bytecode.BId(scoped_id)
-    ) in
+    let bid = bytecode_of_var var scope in
     let expr_type = match bexpr with
     |   Bytecode.BArith_Expr(_) -> "i"
     |   Bytecode.BAtom(Bytecode.BLit(_)) -> "i"
@@ -211,7 +214,6 @@ and bytecode_of_asn ?(arg_scope = temp_scope) var expr scope =
         (* Assign scoped_id <- __RET for FuncCall *)
     |   FuncCall(fid, fexpr_list) ->
             let _, return_id = bytecode_of_expr (Var(__RET__)) scope in
-            (* let return_id = Bytecode.BAtom(Bytecode.BId("__RET")) in *)
                 (bytecode_of_funccall fid fexpr_list scope ~arg_scope:arg_scope)
                 @ [_assign_id_ var return_id scope]
 
@@ -235,11 +237,6 @@ and bytecode_of_stmt stmt scope = match stmt with
         let inner_scope = create_inner_scope scope (id_of_var fid) in
 
         let scoped_fid = find_in_scope scope fid in
-
-        (* let id_of_var_arg var_arg = match var_arg with *)
-        (* |   ArgVar(var) -> id_of_var var *)
-        (* (* Keyword? *) *)
-        (* in *)
 
         let var_of_varargs va = match va with
         |   ArgVar(v) -> v | Keyword(v, _) -> v in
@@ -277,7 +274,6 @@ and bytecode_of_stmt stmt scope = match stmt with
 
         bytecode_of_asn temp_id expr scope @
         [Bytecode.BIf(scoped_id, bstmt_list)]
-
 
 
 and bytecode_of_stmt_list ?(scope = global_scope) stmt_list =

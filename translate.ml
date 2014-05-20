@@ -12,11 +12,25 @@ let string_of_logical_op op = match op with
 |   Ast.Or -> " || "
 |   Ast.And -> " && "
 
+
 let val_of_id id = "$(__VAL__ " ^ id ^ ")"
 
+let gen_cmd ?(newline = true) cmds =
+    let cmd =
+        List.fold_left (fun acc x -> acc ^ x ^ " ") "" cmds
+    in
+    if newline then cmd ^ "\n"
+    else cmd
 
-(* expand is false if a is a func arg,
- * val_of is true when a is being evaluated *)
+let __SETCOUNT__ s =
+    gen_cmd ["__SETCOUNT__";s]
+let __DECCOUNT__ s =
+    gen_cmd ["__DECCOUNT__ ";s]
+let __RETCODE__ s =
+    gen_cmd ["__RETCODE__";s]
+let __SET__ scope id =
+    gen_cmd ["__SET__";scope;id] ~newline:false
+
 let string_of_batom ?(deref = false) ?(scope = "") a =  match a with
     BLit(x) -> string_of_int(x)
 |   BStr(s) -> s
@@ -25,11 +39,6 @@ let string_of_batom ?(deref = false) ?(scope = "") a =  match a with
         let s = "\"$(__GET__ " ^ scope ^ " \"" ^ id ^ "\")\"" in
         if deref then (val_of_id s)
                  else s
-
-        (* let expanded_id = if expand then "\"$" ^ id ^ "\"" else id in *)
-        (*     if deref then  val_of_id expanded_id *)
-        (*     else            expanded_id *)
-
 
 let string_of_barith_atom ?(deref = false) ?(scope = "") batom = match batom with
     BArith_Op(op) -> string_of_op op
@@ -46,36 +55,39 @@ and
 
 sh_of_bstmt bstmt = match bstmt with
 |   BAsn(batom, e, t, scope_str) ->
-        let asn = (match batom with
+        let asn = match batom with
         |   BRawId(id) -> id ^ "="
-        |   BId(id) -> "__SET__ " ^ scope_str ^ " " ^ id ^ " "
-        ) in
+        |   BId(id) -> __SET__ scope_str id
+        in
 
         (* Adds type to e *)
-        let e_type = if (t = "v") then "" else t in
-        (* Use __SET__ *)
-
-        (* let asn = id ^ "=" in *)
-        (*           else "__SET__ " ^ id ^ " " in *)
-            asn ^ e_type ^ (sh_of_bexpr e ~scope:scope_str)
+        let e_type = if (t = "v") then "" else t
+        in
+        asn ^ e_type ^ (sh_of_bexpr e ~scope:scope_str)
 
 |   BFuncDef(f, var_args_list, bstmt_list) ->
-        f ^ "(){\n" ^ 
+        (* Function header *)
+        f ^ "(){\n" ^
         (* Set count for function *)
-        "__SETCOUNT__ " ^ f ^ "__ \n" ^
-        sh_of_bstmt_list bstmt_list ^ "}"
+        (__SETCOUNT__ (f ^ "__")) ^
+        (* Statements *)
+        sh_of_bstmt_list bstmt_list ^
+        (* Add DECCOUNT before function end *)
+        (__DECCOUNT__  (f ^ "__")) ^
+        "}"
 |   BFuncCall(f, bexpr_list) ->
         let sh_bexpr_list = List.map (sh_of_bexpr) bexpr_list in
         let args = List.fold_left (fun acc x -> acc ^ " " ^ x)
             "" sh_bexpr_list in
         f ^ args
 |   BReturn(scope_str) ->
-        "__DECCOUNT__ " ^ scope_str ^ "\n" ^
-        "__RETCODE__ $__RET__; return $?"
+        (__DECCOUNT__ scope_str) ^
+        (__RETCODE__ "$__RET__") ^
+        "return $?"
 |   BLogical(op, bstmt1, bstmt2) ->
         sh_of_bstmt bstmt1 ^ string_of_logical_op op ^ sh_of_bstmt bstmt2
 |   BIf(bexpr, bstmt_list) ->
-        "__RETCODE__ $TEMPIF\n" ^
+        (__RETCODE__ "$TEMPIF") ^
         "if [ $? -eq 0 ]; then\n" ^
         sh_of_bstmt_list bstmt_list ^
         "fi"
