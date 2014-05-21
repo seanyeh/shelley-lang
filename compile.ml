@@ -116,27 +116,27 @@ and bytecode_of_expr expr scope = match expr with
 |   FuncCall(id, expr_list) ->
         bytecode_of_funccall id expr_list scope, Bytecode.NoBexpr
 |   Logical(op, e1, e2) ->
-        let temp_fid1 = create_temp_func () in
-        let temp_fid2 = create_temp_func () in
-
+        (* Initialize some temp variables *)
         let temp_id = BuiltinId("TEMP", None) in
         let temp_var = Var(temp_id) in
         let _, bexpr = bytecode_of_expr temp_var scope in
+        let return_stmt = (bytecode_of_stmt (Return(temp_var)) None)
+        in
 
-        let f1_stmts =
-            (bytecode_of_asn temp_id e1 scope) @
-            (bytecode_of_stmt (Return(temp_var)) scope)
+        (* Generate temp function definition for both expressions *)
+        let gen_func_def temp_fid expr =
+            let fstmts = 
+                (bytecode_of_asn temp_id expr scope) @ return_stmt
+            in
+            Bytecode.BFuncDef(temp_fid, [], fstmts)
         in
-        let f2_stmts =
-            (bytecode_of_asn temp_id e2 scope) @
-            (bytecode_of_stmt (Return(temp_var)) scope)
-        in
-        let func_defs =
-            [Bytecode.BFuncDef(temp_fid1, [], f1_stmts)] @
-            [Bytecode.BFuncDef(temp_fid2, [], f2_stmts)]
-        in
+        let temp_fid1 = create_temp_func () in
+        let temp_fid2 = create_temp_func () in
+
+        (* Stmts: func1(){}, func2(){}, func1 || func2 *)
         let stmts =
-            func_defs @
+            [gen_func_def (temp_fid1) e1] @
+            [gen_func_def (temp_fid2) e2] @
             [Bytecode.BLogical(op,
                 Bytecode.BFuncCall(temp_fid1, []),
                 Bytecode.BFuncCall(temp_fid2, []))] @
@@ -265,7 +265,8 @@ and bytecode_of_stmt stmt scope = match stmt with
         [func_def]
 
 |   Return(expr) ->
-        bytecode_of_asn __RET__ expr scope @ [Bytecode.BReturn(string_of_scope scope)]
+        bytecode_of_asn __RET__ expr scope @
+        [Bytecode.BReturn(string_of_scope scope)]
 
 |   If(expr, stmt_list) ->
         let temp_id = BuiltinId("TEMPIF", None) in

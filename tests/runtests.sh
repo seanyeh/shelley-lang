@@ -6,7 +6,8 @@ declare -A TESTS=(
 [simple2]=3
 [indent]=101
 [white]="     a"
-[fac]="24"
+[fac]=24
+[logical]=1
 )
 
 failed=0

@@ -81,7 +81,11 @@ sh_of_bstmt bstmt = match bstmt with
             "" sh_bexpr_list in
         f ^ args
 |   BReturn(scope_str) ->
-        (__DECCOUNT__ scope_str) ^
+        let pre_stmt = 
+            if (scope_str = "") then ""
+            else (__DECCOUNT__ scope_str) 
+        in
+        pre_stmt ^
         (__RETCODE__ "$__RET__") ^
         "return $?"
 |   BLogical(op, bstmt1, bstmt2) ->
