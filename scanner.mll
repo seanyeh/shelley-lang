@@ -12,10 +12,13 @@ let parse_indents token lexbuf indents =
         String.length (Stack.top indent_stack) in
     let backtrack = fun() -> 
         (* print_endline("Backtrack"); *)
-        lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos - curr_length
+        (lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos - (curr_length + 1))
     in
         (* print_endline("Cur pos: " ^ string_of_int(lexbuf.lex_curr_pos)); *)
+
+        (* If no indent *)
         if (String.length indents = 0) then
+            (* Indents in stack -> DEDENT *)
             if not (stack_empty()) then (
                 Stack.pop indent_stack;
                 (if not (stack_empty()) then 
@@ -23,15 +26,22 @@ let parse_indents token lexbuf indents =
                 (* print_endline "DEDENT"; *)
                 DEDENT
             )
+
+            (* No indents on stack. Normal end statement *)
             else (
                 (* print_endline("noindent END"); *)
                 END_STMT (* end statement *)
             )
+
+        (* If indent *)
         else 
+            (* If current indent is greater than indent on stack -> INDENT *)
             if (stack_empty() || get_stack_length() < curr_length) then
                 (Stack.push indents indent_stack;
                 (* print_endline "INDENT"; *)
                 INDENT)
+
+            (* If current indent is less than indent on stack -> DEDENT *)
             else if not (stack_empty()) && get_stack_length() > curr_length then
                 (
                 Stack.pop indent_stack;
@@ -40,6 +50,8 @@ let parse_indents token lexbuf indents =
                 (* print_endline "DEDENT"; *)
                 DEDENT
                 )
+
+            (* Current indent is same as indent on stack. Normal end statement *)
             else (
                 (* print_endline("same level END"); *)
                 END_STMT

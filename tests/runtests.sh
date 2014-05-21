@@ -4,7 +4,7 @@ declare -A TESTS=(
 [sum]=9
 [simple]=13
 [simple2]=3
-[indent]=1
+[indent]=101
 [white]="     a"
 [fac]="24"
 )

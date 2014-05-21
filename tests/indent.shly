@@ -1,0 +1,4 @@
+def f(n):
+  if n:
+    print(n+1)
+f(100)
