@@ -34,7 +34,10 @@ let __SET__ scope id =
 let string_of_batom ?(deref = false) ?(scope = "") a =  match a with
     BLit(x) -> string_of_int(x)
 |   BStr(s) -> s
-|   BRawId(id) -> "\"$" ^ id ^ "\""
+|   BRawId(id) ->
+        let s = "\"$" ^ id ^ "\"" in
+        if deref then (val_of_id s)
+                 else s
 |   BId(id) ->
         let s = "\"$(__GET__ " ^ scope ^ " \"" ^ id ^ "\")\"" in
         if deref then (val_of_id s)

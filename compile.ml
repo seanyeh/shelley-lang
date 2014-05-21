@@ -76,8 +76,9 @@ let bytecode_of_var var scope =
 (* return list of barith_atom *)
 let rec bytecode_of_binop binop scope = match binop with
 |   Lit(x) -> [], [Bytecode.BArith_Atom(Bytecode.BLit(x))]
-|   Var(var) -> let scoped_id = find_in_scope scope var in
-        [], [Bytecode.BArith_Atom(Bytecode.BId(scoped_id))]
+|   Var(var) ->
+        let bid = bytecode_of_var var scope in
+        [], [Bytecode.BArith_Atom(bid)]
 |   Binop(e1, op, e2) -> 
         let pre_stmts, barith_list1 = bytecode_of_binop e1 scope in
         let post_stmts, barith_list2 = bytecode_of_binop e2 scope in
