@@ -1,0 +1,7 @@
+def hanoi(ndisks, startPeg, endPeg):
+    if ndisks:
+        hanoi(ndisks-1, startPeg, 6-startPeg-endPeg)
+        print(startPeg, endPeg)
+        hanoi(ndisks-1, 6-startPeg-endPeg, endPeg)
+
+hanoi(4, 1, 3)

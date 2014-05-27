@@ -47,6 +47,7 @@ let rec find_in_scope ?(check = true) scope var = match var with
                 find_in_scope parent var
 )
 
+(* Scopes *)
 let global_scope = 
     let scope = Scope("__GLOBAL", None, Hashtbl.create 10) in
     _add_to_scope_ scope (BuiltinId("print", None)); scope
@@ -54,6 +55,7 @@ let global_scope =
 let temp_scope = Scope("__TEMP", None, Hashtbl.create 10)
 
 
+(* For temp functions *)
 let __TEMPFUNCS__ = ref 0
 
 let create_temp_func () =
@@ -62,23 +64,24 @@ let create_temp_func () =
     fid
 
 
-let rec generate_temp_args arg_counter = match arg_counter with
-|   0 -> []
-|   x -> (generate_temp_args (arg_counter - 1)) @
-            [string_of_int (arg_counter - 1)]
 
-
+(* Ast -> Bytecode functions *)
 
 let bytecode_of_var var scope =
     let scoped_var = find_in_scope scope var in
     match var with
+    (* BuiltinId's are normal variables *)
     |   BuiltinId(_, _) -> Bytecode.BRawId(scoped_var)
+    (* TempId and Id are used with __GET__ and __SET__ *)
     |   TempId(_, _) -> Bytecode.BId(scoped_var)
     |   Id(_) -> Bytecode.BId(scoped_var)
 
 
 (* return list of barith_atom *)
-let rec bytecode_of_binop ?(arg_counter = ref 0) ?(arg_scope = temp_scope) binop scope = match binop with
+let rec bytecode_of_binop
+    ?(arg_counter = ref 0) ?(arg_scope = temp_scope) binop scope =
+
+    match binop with
 |   Binop(e1, op, e2) -> 
         let pre_stmts, barith_list1 =
             bytecode_of_binop e1 scope
@@ -90,26 +93,38 @@ let rec bytecode_of_binop ?(arg_counter = ref 0) ?(arg_scope = temp_scope) binop
             barith_list1 @ [Bytecode.BArith_Op(op)] @ barith_list2 in
         (pre_stmts @ post_stmts), barith_list_acc
 
-|   Lit(x) -> [], [Bytecode.BArith_Atom(Bytecode.BLit(x))]
+|   Lit(x) ->
+        [], [Bytecode.BArith_Atom(Bytecode.BLit(x))]
 |   Var(var) ->
         let bid = bytecode_of_var var scope in
         [], [Bytecode.BArith_Atom(bid)]
+
+
+(* A function call as a value in a binop statement *)
 |   FuncCall(fid, fexpr_list) ->
+        (* Get statements for function call *)
         let pre_stmts = 
             bytecode_of_funccall fid fexpr_list scope in
 
+        (* Create new arg scope for arguments to an expr statement *)
         let new_arg_scope = (create_inner_scope arg_scope "ARG") in
+
+        (* Temp (EXPR) arg variable for expr *)
         let temp_arg = "EXPR" ^ string_of_int !arg_counter in
         let temp_id = (TempId(temp_arg, new_arg_scope)) in
 
+        (* Side effect! *)
         incr arg_counter;
 
+        (* Assign temp (EXPR) arg = __RET__ *)
         let temp_asn = bytecode_of_asn temp_id (Var(__RET__)) scope
                             ~arg_scope:new_arg_scope in
 
         let _, barith_list = bytecode_of_binop (Var(temp_id)) scope
         in
+
         pre_stmts @ temp_asn, barith_list
+
 |   Str(_) -> 
         raise (Failure ("Strings do not support arithmetic operators"))
         
@@ -120,7 +135,6 @@ and bytecode_of_expr ?(arg_scope = temp_scope) expr scope = match expr with
 |   Lit(x) -> [], Bytecode.BAtom(Bytecode.BLit(x))
 |   Str(x) -> [], Bytecode.BAtom(Bytecode.BStr(x))
 |   Var(var) -> 
-        (* let scoped_id = find_in_scope scope var in *)
         let bid = bytecode_of_var var scope in
         [], Bytecode.BAtom(bid)
 
@@ -168,7 +182,6 @@ and bytecode_of_expr ?(arg_scope = temp_scope) expr scope = match expr with
         stmts, bexpr
 
 
-
 (* return bstmt list *)
 and bytecode_of_funccall ?(arg_scope = temp_scope) id expr_list scope =
     let scoped_fid = find_in_scope scope id in
@@ -186,6 +199,13 @@ and bytecode_of_funccall ?(arg_scope = temp_scope) id expr_list scope =
                     acc @ bytecode_of_e
                 ) [] expr_list
     in
+
+    let rec generate_temp_args arg_counter = match arg_counter with
+    |   0 -> []
+    |   x -> (generate_temp_args (arg_counter - 1)) @
+            [string_of_int (arg_counter - 1)]
+    in
+
 
     let func_args_list =
         (* Use string_of_id instead of find_in_scope because func (temp) args
@@ -207,7 +227,6 @@ and _assign_id_ var bexpr scope =
 
     let scoped_id = (find_in_scope scope var) in
 
-    (*this is repeated in bytecode_of_expr. TODO: share the code*)
     let bid = bytecode_of_var var scope in
     let expr_type = match bexpr with
     |   Bytecode.BArith_Expr(_) -> "i"
@@ -248,6 +267,7 @@ and bytecode_of_asn ?(arg_scope = temp_scope) var expr scope =
 (* Return list of Bytecode.bstmt *)
 and bytecode_of_stmt stmt scope = match stmt with
 |   Expr(e) -> 
+        (* Ignore the value of the expr if it is a standalone statement *)
         let stmts, _ = bytecode_of_expr e scope in
 
         stmts
@@ -288,6 +308,7 @@ and bytecode_of_stmt stmt scope = match stmt with
         [func_def]
 
 |   Return(expr) ->
+        (* Assign __RET__ = expr and some boilerplate things *)
         bytecode_of_asn __RET__ expr scope @
         [Bytecode.BReturn(string_of_scope scope)]
 

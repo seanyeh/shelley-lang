@@ -11,6 +11,7 @@ declare -A TESTS=(
 [fib]=21
 [funcs]=12
 [exprfunc]=15
+[hanoi]="12\n13\n23\n12\n31\n32\n12\n13\n23\n21\n31\n23\n12\n13\n23"
 )
 
 failed=0
@@ -19,10 +20,12 @@ failed_tests=""
 for key in "${!TESTS[@]}"; do 
     testfile="tests/$key.shly"
     
-    expected_output=${TESTS[$key]}
+    expected_output=$(printf "${TESTS[$key]}")
     output=$(cat $testfile | ./main.native | sh)
 
     if [ $? -ne 0 ] || [ "$output" != "$expected_output" ]; then
+        echo "Test $key:"
+        echo "Output: $output, Expected: $expected_output"
         ((failed++))
         failed_tests="$key,$failed_tests"
     else
