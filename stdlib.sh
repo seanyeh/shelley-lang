@@ -54,7 +54,7 @@ __SETCOUNT__() {
     __TEMP__varname="__COUNT""$1"
     __TEMP__countval="$(__DEREF__ $__TEMP__varname)"
     if [ -z "$__TEMP__countval" ]; then
-        eval "$__TEMP__varname=0"
+        eval "$__TEMP__varname=1"
     else
         eval "$__TEMP__varname=`expr $__TEMP__countval + 1`"
     fi

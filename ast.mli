@@ -7,6 +7,10 @@ type scope =
 
 type var =
 |   Id of string
+
+(* Like Id, but don't check for scope *)
+|   TempId of string * scope
+
 |   BuiltinId of string * scope
 
 type expr =

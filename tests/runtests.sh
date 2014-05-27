@@ -8,6 +8,9 @@ declare -A TESTS=(
 [white]="     a"
 [fac]=24
 [logical]=1
+[fib]=21
+[funcs]=12
+[exprfunc]=15
 )
 
 failed=0

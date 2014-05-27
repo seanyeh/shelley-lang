@@ -8,6 +8,7 @@ let __RET__ = BuiltinId("__RET__", None)
 
 let is_temp var = match var with
 |   BuiltinId(_, _) -> true
+|   TempId(_, _) -> true
 |   _ -> false
 
 
@@ -24,6 +25,7 @@ let create_inner_scope parent name =
 
 let id_of_var var = match var with
 |   BuiltinId(id, scope) -> id
+|   TempId(id, _) -> id
 |   Id(id) -> id
 
 
@@ -34,6 +36,7 @@ let _add_to_scope_ scope var = match scope with
 
 let rec find_in_scope ?(check = true) scope var = match var with
 |   BuiltinId(id, scope) -> string_of_id scope id
+|   TempId(id, scope) -> string_of_id scope id
 |   Id(id) -> (match scope with
     |   None ->
             raise (Failure ("Undefined variable: " ^ id))
@@ -70,33 +73,49 @@ let bytecode_of_var var scope =
     let scoped_var = find_in_scope scope var in
     match var with
     |   BuiltinId(_, _) -> Bytecode.BRawId(scoped_var)
+    |   TempId(_, _) -> Bytecode.BId(scoped_var)
     |   Id(_) -> Bytecode.BId(scoped_var)
 
 
 (* return list of barith_atom *)
-let rec bytecode_of_binop binop scope = match binop with
+let rec bytecode_of_binop ?(arg_counter = ref 0) ?(arg_scope = temp_scope) binop scope = match binop with
+|   Binop(e1, op, e2) -> 
+        let pre_stmts, barith_list1 =
+            bytecode_of_binop e1 scope
+                ~arg_counter:arg_counter ~arg_scope:arg_scope in
+        let post_stmts, barith_list2 =
+            bytecode_of_binop e2 scope
+                ~arg_counter:arg_counter ~arg_scope:arg_scope in
+        let barith_list_acc = 
+            barith_list1 @ [Bytecode.BArith_Op(op)] @ barith_list2 in
+        (pre_stmts @ post_stmts), barith_list_acc
+
 |   Lit(x) -> [], [Bytecode.BArith_Atom(Bytecode.BLit(x))]
 |   Var(var) ->
         let bid = bytecode_of_var var scope in
         [], [Bytecode.BArith_Atom(bid)]
-|   Binop(e1, op, e2) -> 
-        let pre_stmts, barith_list1 = bytecode_of_binop e1 scope in
-        let post_stmts, barith_list2 = bytecode_of_binop e2 scope in
-        let barith_list_acc = 
-            barith_list1 @ [Bytecode.BArith_Op(op)] @ barith_list2 in
-        (pre_stmts @ post_stmts), barith_list_acc
 |   FuncCall(fid, fexpr_list) ->
         let pre_stmts = 
             bytecode_of_funccall fid fexpr_list scope in
-        let _, barith_list = bytecode_of_binop (Var(__RET__)) scope
+
+        let new_arg_scope = (create_inner_scope arg_scope "ARG") in
+        let temp_arg = "EXPR" ^ string_of_int !arg_counter in
+        let temp_id = (TempId(temp_arg, new_arg_scope)) in
+
+        incr arg_counter;
+
+        let temp_asn = bytecode_of_asn temp_id (Var(__RET__)) scope
+                            ~arg_scope:new_arg_scope in
+
+        let _, barith_list = bytecode_of_binop (Var(temp_id)) scope
         in
-        pre_stmts, barith_list
+        pre_stmts @ temp_asn, barith_list
 |   Str(_) -> 
         raise (Failure ("Strings do not support arithmetic operators"))
         
 
 (* Returns stmt list , bexpr *)
-and bytecode_of_expr expr scope = match expr with
+and bytecode_of_expr ?(arg_scope = temp_scope) expr scope = match expr with
 
 |   Lit(x) -> [], Bytecode.BAtom(Bytecode.BLit(x))
 |   Str(x) -> [], Bytecode.BAtom(Bytecode.BStr(x))
@@ -107,7 +126,7 @@ and bytecode_of_expr expr scope = match expr with
 
 |   Binop(e1, op, e2) -> 
         let pre_stmts, barith_atom_list = 
-            bytecode_of_binop (Binop(e1, op, e2)) scope in
+            bytecode_of_binop (Binop(e1, op, e2)) scope ~arg_scope:arg_scope in
         pre_stmts, Bytecode.BArith_Expr(barith_atom_list)
 
 |   Asn(id, e) -> 
@@ -149,10 +168,14 @@ and bytecode_of_expr expr scope = match expr with
         stmts, bexpr
 
 
+
 (* return bstmt list *)
 and bytecode_of_funccall ?(arg_scope = temp_scope) id expr_list scope =
-    let arg_counter = ref 0 in
+    let scoped_fid = find_in_scope scope id in
+
     let new_arg_scope = (create_inner_scope arg_scope "ARG") in
+    let arg_counter = ref 0 in
+
     let temp_args_stmts =
         List.fold_left (fun acc expr ->
             let temp_arg = string_of_int !arg_counter in
@@ -163,14 +186,13 @@ and bytecode_of_funccall ?(arg_scope = temp_scope) id expr_list scope =
                     acc @ bytecode_of_e
                 ) [] expr_list
     in
-    (* Find function in scope *)
-    let scoped_fid = find_in_scope scope id in
 
     let func_args_list =
         (* Use string_of_id instead of find_in_scope because func (temp) args
          * are not found in scope *)
         List.map (fun x -> Bytecode.BAtom(Bytecode.BRawId(string_of_id new_arg_scope x)))
         (generate_temp_args !arg_counter) in
+
     let funccall = Bytecode.BFuncCall(scoped_fid, func_args_list) in
         temp_args_stmts @ [funccall]
 
@@ -219,7 +241,7 @@ and bytecode_of_asn ?(arg_scope = temp_scope) var expr scope =
                 @ [_assign_id_ var return_id scope]
 
         (* Otherwise, e is Lit, Id, or Binop *)
-    |   e -> let pre_stmts, bexpr = bytecode_of_expr e scope in
+    |   e -> let pre_stmts, bexpr = bytecode_of_expr e scope ~arg_scope:arg_scope in
             pre_stmts @ [_assign_id_ var bexpr scope]
 
 
