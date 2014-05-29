@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 declare -A TESTS=(
 [sum]=9
 [simple]=13
@@ -14,26 +15,34 @@ declare -A TESTS=(
 [hanoi]="12\n13\n23\n12\n31\n32\n12\n13\n23\n21\n31\n23\n12\n13\n23"
 )
 
-failed=0
-passed=0
-failed_tests=""
-for key in "${!TESTS[@]}"; do 
-    testfile="tests/$key.shly"
-    
-    expected_output=$(printf "${TESTS[$key]}")
-    output=$(cat $testfile | ./main.native | sh)
+run_tests(){
+    shell="$1"
+    echo "Testing shell: $shell"
+    failed=0
+    passed=0
+    failed_tests=""
+    for key in "${!TESTS[@]}"; do 
+        testfile="tests/$key.shly"
 
-    if [ $? -ne 0 ] || [ "$output" != "$expected_output" ]; then
-        echo "Test $key:"
-        echo "Output: $output, Expected: $expected_output"
-        ((failed++))
-        failed_tests="$key,$failed_tests"
-    else
-        ((passed++))
-    fi
-done
+        expected_output=$(printf "${TESTS[$key]}")
+        output=$(cat $testfile | ./main.native | $shell)
 
-echo "Passed: $passed, Failed: $failed"
-[ $failed -ne 0 ] && echo "Failed tests: $failed_tests"
+        if [ $? -ne 0 ] || [ "$output" != "$expected_output" ]; then
+            echo "Test $key:"
+            echo "Output: $output, Expected: $expected_output"
+            ((failed++))
+            failed_tests="$key,$failed_tests"
+        else
+            ((passed++))
+        fi
+    done
 
-echo ""
+    echo "Passed: $passed, Failed: $failed"
+    [ $failed -ne 0 ] && echo "Failed tests: $failed_tests"
+
+    echo ""
+}
+
+
+run_tests "dash"
+run_tests "/usr/heirloom/bin/sh"

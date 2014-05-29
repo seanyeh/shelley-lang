@@ -13,7 +13,22 @@ let string_of_logical_op op = match op with
 |   Ast.And -> " && "
 
 
-let val_of_id id = "$(__VAL__ " ^ id ^ ")"
+let rec gen_string character length =
+    if length <= 0 then "" 
+    else character ^ (gen_string character (length - 1))
+
+let rec pow n exp = match exp with
+|   0 -> 1
+|   x -> n * (pow n (x - 1))
+
+let __BT__ btlevel =
+    let num_bs = (pow 2 btlevel) - 1 in
+    let num_bs = max 0 num_bs in
+    (gen_string "\\" num_bs) ^ "`"
+
+let val_of_id id btlevel=
+    let bt = __BT__ btlevel in
+    bt ^ ("__VAL__ " ^ id) ^ bt
 
 let gen_cmd ?(newline = true) cmds =
     let cmd =
@@ -31,32 +46,41 @@ let __RETCODE__ s =
 let __SET__ scope id =
     gen_cmd ["__SET__";scope;id] ~newline:false
 
-let string_of_batom ?(deref = false) ?(scope = "") a =  match a with
+
+
+let string_of_batom ?(btlevel = 0) ?(deref = false) ?(scope = "") a =  match a with
     BLit(x) -> string_of_int(x)
 |   BStr(s) -> s
 |   BRawId(id) ->
         let s = "\"$" ^ id ^ "\"" in
-        if deref then (val_of_id s)
+        if deref then (val_of_id s btlevel)
                  else s
 |   BId(id) ->
-        let s = "\"$(__GET__ " ^ scope ^ " \"" ^ id ^ "\")\"" in
-        if deref then (val_of_id s)
-                 else s
+        let s = "__GET__ " ^ scope ^ " \"" ^ id ^ "\"" in
+        if deref then
+            let bt = __BT__ (btlevel+1) in
+                val_of_id ("\"" ^ bt ^ s ^ bt ^ "\"") btlevel
+        else
+            let bt = __BT__ btlevel in
+                "\"" ^ bt ^ s ^ bt ^ "\""
 
-let string_of_barith_atom ?(deref = false) ?(scope = "") batom = match batom with
+
+let string_of_barith_atom ?(btlevel = 0) ?(deref = false) ?(scope = "") batom = match batom with
     BArith_Op(op) -> string_of_op op
-|   BArith_Atom(a) -> string_of_batom a ~deref:deref ~scope:scope
+|   BArith_Atom(a) -> string_of_batom a ~btlevel:btlevel ~deref:deref ~scope:scope
 
-let rec sh_of_bexpr ?(deref = false) ?(scope = "") bexpr = match bexpr with
+let rec sh_of_bexpr ?(deref = false) ?(scope = "") ?(btlevel = 0) bexpr = match bexpr with
     BAtom(a) -> string_of_batom a ~deref:deref ~scope:scope
 |   BArith_Expr(barith_atoms) -> 
-        let accum = (fun acc x -> acc ^ string_of_barith_atom x ~deref:true ~scope:scope) in
+        let bt = __BT__ btlevel in
+        let accum = (fun acc x -> acc ^ string_of_barith_atom x ~btlevel:(btlevel + 1) ~deref:true ~scope:scope) in
         let expr_str = List.fold_left accum "" barith_atoms in
-            "`expr " ^ expr_str ^ "`"
+            bt ^ ("expr " ^ expr_str) ^ bt
 
 and
 
-sh_of_bstmt bstmt = match bstmt with
+sh_of_bstmt bstmt = 
+    match bstmt with
 |   BAsn(batom, e, t, scope_str) ->
         let asn = match batom with
         |   BRawId(id) -> id ^ "="
