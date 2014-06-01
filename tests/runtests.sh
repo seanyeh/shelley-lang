@@ -13,6 +13,7 @@ declare -A TESTS=(
 [funcs]=12
 [exprfunc]=15
 [hanoi]="12\n13\n23\n12\n31\n32\n12\n13\n23\n21\n31\n23\n12\n13\n23"
+[compare]="1\n0\n0\n0\n1\n0\n1\n1"
 )
 
 run_tests(){

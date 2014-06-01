@@ -129,26 +129,69 @@ let rec bytecode_of_binop
         raise (Failure ("Strings do not support arithmetic operators"))
         
 
+and bytecode_of_compare op e1 e2 scope =
+    (* Converts a compare to a series of Logical && statements *)
+
+    let op_str op = match op with
+    |   Eq -> "-eq" | Gt -> "-gt" | Lt -> "-lt" | Gte -> "-ge" | Lte -> "-le"
+    in
+
+    let is_compare expr = match expr with
+    |   Compare(_, _, _) -> true | _ -> false
+    in
+
+    (* Generate (e1 && (e2 && ...(ex && Lit(1)))) *)
+    let rec gen_logical_tree op e1 e2 =
+        if not (is_compare e2) then
+            (* base case *)
+            let args = [Str(op_str op); e1; e2] in
+            let funccall = FuncCall(TempId("__COMPARE__", None), args) in
+            let logical = Logical(And, funccall, Lit(1)) in
+
+            logical
+        else
+            (* e2 is also a compare. recurse *)
+            let next_op, next_e1, next_e2 = match e2 with
+            |   Compare(op, e1, e2) -> op, e1, e2 in
+            let args = [Str(op_str op); e1; next_e1] in
+            let funccall = FuncCall(TempId("__COMPARE__", None), args) in
+
+            Logical(And, funccall, (gen_logical_tree next_op next_e1 next_e2))
+
+    in
+
+    bytecode_of_expr (gen_logical_tree op e1 e2) scope
+
+
 (* Returns stmt list , bexpr *)
 and bytecode_of_expr ?(arg_scope = temp_scope) expr scope = match expr with
 
 |   Lit(x) -> [], Bytecode.BAtom(Bytecode.BLit(x))
 |   Str(x) -> [], Bytecode.BAtom(Bytecode.BStr(x))
 |   Var(var) -> 
+        (* See bytecode_of_var *)
         let bid = bytecode_of_var var scope in
         [], Bytecode.BAtom(bid)
 
 |   Binop(e1, op, e2) -> 
+        (* See bytecode_of_binop *)
         let pre_stmts, barith_atom_list = 
             bytecode_of_binop (Binop(e1, op, e2)) scope ~arg_scope:arg_scope in
         pre_stmts, Bytecode.BArith_Expr(barith_atom_list)
 
 |   Asn(id, e) -> 
+        (* See bytecode_of_asn *)
         let pre_stmts = bytecode_of_asn id e scope in
         let _, var_bexpr =  (bytecode_of_expr (Var(id)) scope) in
         pre_stmts, var_bexpr
+
 |   FuncCall(id, expr_list) ->
+        (* See bytecode_of_funccall *)
         bytecode_of_funccall id expr_list scope, Bytecode.NoBexpr
+
+|   Compare(op, e1, e2) ->
+        bytecode_of_compare op e1 e2 scope
+
 |   Logical(op, e1, e2) ->
         (* Initialize some temp variables *)
         let temp_id = BuiltinId("TEMP", None) in
@@ -224,8 +267,6 @@ and _assign_id_ var bexpr scope =
     (* Add non-temp variable to scope hashtable *)
     (if not (is_temp var) then
         (_add_to_scope_ scope var));
-
-    let scoped_id = (find_in_scope scope var) in
 
     let bid = bytecode_of_var var scope in
     let expr_type = match bexpr with
@@ -319,6 +360,8 @@ and bytecode_of_stmt stmt scope = match stmt with
 
         bytecode_of_asn temp_id expr scope @
         [Bytecode.BIf(scoped_id, bstmt_list)]
+|   NoStmt ->
+        []
 
 
 and bytecode_of_stmt_list ?(scope = global_scope) stmt_list =

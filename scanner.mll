@@ -62,9 +62,11 @@ rule token =
     parse '\n'[' ']* as s { let len = String.length s in
                             let indents = String.sub s 1 (len - 1) in 
                                 parse_indents token lexbuf indents }
-    | [' ' '\t' '\r']  { token lexbuf }
 
-    | '\n'                      { print_endline("newline?"); NEWLINE }
+    | [' ' '\t' '\r']           { token lexbuf }
+
+    | '\n'                      { print_endline "ENDLINE?"; EOF }
+    | '#'                       { comment lexbuf }
     | ';'                       { SEMI }
     | ':'                       { COLON }
     | ','                       { COMMA }
@@ -78,14 +80,25 @@ rule token =
     | "or"                      { OR }
     | "and"                     { AND }
 
+    | ">="                      { GTE }
+    | "<="                      { LTE }
+    | ">"                       { GT }
+    | "<"                       { LT }
+    | "=="                      { EQ }
+
     | "if"                      { IF }
 
-    | "def "                     { DEF }
+    | "def "                    { DEF }
     | "return "                 { RETURN }
 
     | ['0'-'9']+ as lit         { LITERAL(int_of_string lit) }
     | '"' [^'"']* '"'  as lxm   { STRING(lxm) }
-    | ['a'-'z' 'A'-'Z' '_']['a'-'z' 'A'-'Z' '0'-'9' '_']* as lxm { ID(lxm) }
+    | ['a'-'z' 'A'-'Z' '_']['a'-'z' 'A'-'Z' '0'-'9' '_']* as lxm
+                                { ID(lxm) }
     | '='                       { ASN }
     | eof                       { EOF }
     | _ as char { raise (Failure("illegal character " ^ Char.escaped char)) }
+
+and comment = parse
+  '\n'  { END_STMT }
+| _ as x     { comment lexbuf }

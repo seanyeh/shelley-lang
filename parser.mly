@@ -2,7 +2,7 @@
 
 %token PLUS MINUS TIMES DIVIDE EOF ASN SEQ NEWLINE SEMI END_STMT
 %token END DEF INDENT DEDENT COLON COMMA RPAREN LPAREN RETURN
-%token OR AND
+%token OR AND EQ GT LT GTE LTE
 %token IF
 %token <int> LITERAL
 %token <string> ID
@@ -11,8 +11,11 @@
 %left SEMI END_STMT
 %left COMMA
 %left ASN
+
 %left OR
 %left AND
+%right EQ GT LT GTE LTE
+
 %left PLUS MINUS
 %left TIMES DIVIDE
 
@@ -101,6 +104,12 @@ funcdef:
 test:
     expr OR expr    { Logical(Or, $1, $3) }
 |   expr AND expr    { Logical(And, $1, $3) }
+
+|   expr EQ expr    { Compare(Eq, $1, $3) }
+|   expr GT expr    { Compare(Gt, $1, $3) }
+|   expr LT expr    { Compare(Lt, $1, $3) }
+|   expr GTE expr    { Compare(Gte, $1, $3) }
+|   expr LTE expr    { Compare(Lte, $1, $3) }
 
 if_stmt:
     IF expr COLON suite { If($2, $4) }

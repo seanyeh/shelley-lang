@@ -76,6 +76,10 @@ let rec sh_of_bexpr ?(deref = false) ?(scope = "") ?(btlevel = 0) bexpr = match 
         let accum = (fun acc x -> acc ^ string_of_barith_atom x ~btlevel:(btlevel + 1) ~deref:true ~scope:scope) in
         let expr_str = List.fold_left accum "" barith_atoms in
             bt ^ ("expr " ^ expr_str) ^ bt
+|   NoBexpr ->
+        raise (Failure ("NoBexpr"))
+
+
 
 and
 

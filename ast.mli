@@ -1,5 +1,6 @@
 type operator = Add | Sub | Mul | Div
 type logical_op = Or | And
+type compare_op = Eq | Gt | Lt | Gte | Lte
 
 type scope =
 |   Scope of string * scope * (string, string) Hashtbl.t
@@ -20,6 +21,7 @@ type expr =
 |   Str of string
 |   Asn of var * expr
 |   FuncCall of var * expr list
+|   Compare of compare_op * expr * expr
 |   Logical of logical_op * expr * expr
 and
 
@@ -32,6 +34,7 @@ type stmt =
 |   FuncDef of var * var_args list * stmt list
 |   Return of expr
 |   If of expr * stmt list
+|   NoStmt
 
 
 type program = {
