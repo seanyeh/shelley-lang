@@ -23,6 +23,8 @@ program:
 stmt_list:
     stmt {[$1]}
 |   stmt stmt_list {[$1] @ $2}
+/* stmt_list can be or end with a small_stmt */
+|   small_stmt {[$1]}
 
 
 stmt:
@@ -34,9 +36,7 @@ stmt:
  * Simple Statement
  */
 simple_stmt:
-
-    small_stmt {$1}
-|   small_stmt end_stmt {$1}
+    small_stmt end_stmt {$1}
 
 small_stmt:
     expr_stmt {Expr($1)}
@@ -134,6 +134,7 @@ atom:
     LITERAL {Lit($1)}
 |   STRING {Str($1)}
 |   id {Var($1)}
+|   LPAREN expr_stmt RPAREN {$2}
 
 
 
@@ -167,7 +168,6 @@ varargslist:
     /* keyword args */
     id {[ArgVar($1)]}
 |   id COMMA varargslist {[ArgVar($1)] @ $3}
-
 
 
 
