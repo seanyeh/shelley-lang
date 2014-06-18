@@ -2,8 +2,11 @@
 
 %token PLUS MINUS TIMES DIVIDE EOF ASN SEQ NEWLINE SEMI END_STMT
 %token END DEF INDENT DEDENT COLON COMMA RPAREN LPAREN RETURN
+%token LBRACKET RBRACKET
+
 %token OR AND EQ GT LT GTE LTE
 %token IF
+
 %token <int> LITERAL
 %token <string> ID
 %token <string> STRING
@@ -109,13 +112,23 @@ power:
     /* some stuff */
     atom {$1}
 
-|   id trailer_list {FuncCall($1, $2)}
+/*|   id trailer_list {FuncCall($1, $2)}*/
+|   trailer_list {$1}
 
 trailer_list:
-    trailer {$1}
-|   trailer trailer_list {$1 @ $2}
+    id trailer_func {FuncCall(Var($1), $2)}
 
-trailer:
+|   id trailer_subscript {Subscript($1, $2)}
+
+/*|   trailer_list trailer_func {FuncCall($1, $2)}*/
+
+
+/*|   trailer trailer_list {$1 @ $2}*/
+
+trailer_subscript:
+    LBRACKET expr_stmt RBRACKET { $2 }
+
+trailer_func:
     LPAREN RPAREN {[]}
 |   LPAREN arglist RPAREN {$2}
 
@@ -130,11 +143,20 @@ argument:
     /* this differs from python grammar */
     expr_stmt {$1}
 
+
+
+
 atom:
     LITERAL {Lit($1)}
 |   STRING {Str($1)}
 |   id {Var($1)}
 |   LPAREN expr_stmt RPAREN {$2}
+
+|   LBRACKET listmaker RBRACKET { Array($2) }
+
+listmaker:
+    test {[$1]}
+|   test COMMA listmaker {[$1] @ $3}
 
 
 

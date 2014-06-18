@@ -1,6 +1,6 @@
 __COUNT__GLOBAL__=0
 
-__PRINTF__(){
+__PRINTF__() {
     printf -- "$1"
 }
 
@@ -8,7 +8,7 @@ __STR__length() {
     __PRINTF__ `__PRINTF__ "$1" | wc -c`
 }
 
-__GLOBAL__print() {
+__F__GLOBAL__print() {
     for var in "$@"
     do
         __PRINTF__ "`__VAL__ "$var"`"
@@ -19,7 +19,9 @@ __GLOBAL__print() {
 
 # should write stdlib in shelly I think
 # __LOGICAL__ op e1 e2
-__COMPARE__() {
+
+# __F__COMPARE__() {
+__F__GLOBAL__compare() {
     __TEMP__op="`__VAL__ "$1"`"
     __TEMP__e1="`__VAL__ "$2"`"
     __TEMP__e2="`__VAL__ "$3"`"
@@ -100,7 +102,38 @@ __RETCODE__() {
     __TEMP__v=`__VAL__ "$1"`
     if [ "$__TEMP__t" = "s" ]; then
         [ "$__TEMP__v" != "" ]; return $?
-    else
+    elif [ "$__TEMP__t" = "i" ]; then
         [ "$__TEMP__v" -ne 0 ]; return $?
+    else
+        return 0
     fi
 }
+
+__FUNCCALL__() {
+    __TEMP__t=`__PRINTF__ $1 | head -c 1`
+    __TEMP__v=`__VAL__ "$1"`
+
+    if [ "$__TEMP__t" = "f" ]; then
+        # If function does not exist
+        type $__TEMP__v > /dev/null
+        if [ $? -ne 0 ] ; then
+            echo "Runtime Error: function $__TEMP__v not found"
+            return 1
+        fi
+
+        shift
+        $__TEMP__v "$@"
+
+        __RETCODE__ $__RET__
+        return $?
+    else
+        echo "\"$__TEMP__v\" is not a function"
+    fi
+}
+
+
+# Global temp stuff
+# __GLOBAL__print="f__F__GLOBAL__print"
+__SET__ __GLOBAL__ __GLOBAL__print f__F__GLOBAL__print
+__SET__ __GLOBAL__ __GLOBAL__compare f__F__GLOBAL__compare
+# __SET__ __GLOBAL__ __COMPARE__ f__F__COMPARE__

@@ -23,6 +23,7 @@ run_tests(){
     passed=0
     failed_tests=""
     for key in "${!TESTS[@]}"; do 
+        printf "Testing $key..."
         testfile="tests/$key.shly"
 
         expected_output=$(printf "${TESTS[$key]}")
@@ -33,8 +34,10 @@ run_tests(){
             echo "Output: $output, Expected: $expected_output"
             ((failed++))
             failed_tests="$key,$failed_tests"
+            echo "  FAILED"
         else
             ((passed++))
+            echo "  PASSED"
         fi
     done
 

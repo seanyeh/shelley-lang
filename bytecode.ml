@@ -3,7 +3,7 @@
 type batom =
     BLit of int
 |   BStr of string
-|   BId of string
+|   BId of string * string
 |   BRawId of string
 
 type barith_atom =
@@ -14,12 +14,13 @@ type barith_atom =
 type bexpr =
     BAtom of batom
 |   BArith_Expr of barith_atom list
+|   BRawFuncCall of string * bexpr list
 |   NoBexpr
 
 type bstmt =
     BAsn of batom * bexpr * string * string
 |   BFuncDef of string * Ast.var_args list * bstmt list
-|   BFuncCall of string * bexpr list
+|   BFuncCall of bexpr * bexpr list
 |   BReturn of string
 |   BLogical of Ast.logical_op * bstmt * bstmt
 |   BRaw of string

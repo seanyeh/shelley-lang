@@ -19,8 +19,12 @@ type expr =
 |   Binop of expr * operator * expr
 |   Lit of int
 |   Str of string
+|   Array of expr list
 |   Asn of var * expr
-|   FuncCall of var * expr list
+
+|   FuncCall of expr * expr list
+|   Subscript of var * expr
+
 |   Compare of compare_op * expr * expr
 |   Logical of logical_op * expr * expr
 and

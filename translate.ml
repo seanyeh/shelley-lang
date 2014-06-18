@@ -55,8 +55,9 @@ let string_of_batom ?(btlevel = 0) ?(deref = false) ?(scope = "") a =  match a w
         let s = "\"$" ^ id ^ "\"" in
         if deref then (val_of_id s btlevel)
                  else s
-|   BId(id) ->
-        let s = "__GET__ " ^ scope ^ " \"" ^ id ^ "\"" in
+|   BId(id, scope_TEMP) ->
+        (* print_endline("TRANSLATE:"^id^" scope:"^scope_TEMP); *)
+        let s = "__GET__ " ^ scope_TEMP ^ " \"" ^ id ^ "\"" in
         if deref then
             let bt = __BT__ (btlevel+1) in
                 val_of_id ("\"" ^ bt ^ s ^ bt ^ "\"") btlevel
@@ -71,11 +72,20 @@ let string_of_barith_atom ?(btlevel = 0) ?(deref = false) ?(scope = "") batom = 
 
 let rec sh_of_bexpr ?(deref = false) ?(scope = "") ?(btlevel = 0) bexpr = match bexpr with
     BAtom(a) -> string_of_batom a ~deref:deref ~scope:scope
+
 |   BArith_Expr(barith_atoms) -> 
         let bt = __BT__ btlevel in
         let accum = (fun acc x -> acc ^ string_of_barith_atom x ~btlevel:(btlevel + 1) ~deref:true ~scope:scope) in
         let expr_str = List.fold_left accum "" barith_atoms in
             bt ^ ("expr " ^ expr_str) ^ bt
+
+|   BRawFuncCall(f, bexpr_list) ->
+        let bt = __BT__ btlevel in
+        let sh_bexpr_list = List.map (sh_of_bexpr ~btlevel:(btlevel + 1)) bexpr_list in
+        let args = List.fold_left (fun acc x -> acc ^ " " ^ x)
+            "" sh_bexpr_list in
+        bt ^ f ^ args ^ bt
+
 |   NoBexpr ->
         raise (Failure ("NoBexpr"))
 
@@ -88,7 +98,7 @@ sh_of_bstmt bstmt =
 |   BAsn(batom, e, t, scope_str) ->
         let asn = match batom with
         |   BRawId(id) -> id ^ "="
-        |   BId(id) -> __SET__ scope_str id
+        |   BId(id, scope_TEMP) -> __SET__ scope_str id
         in
 
         (* Adds type to e *)
@@ -97,8 +107,8 @@ sh_of_bstmt bstmt =
         asn ^ e_type ^ (sh_of_bexpr e ~scope:scope_str)
 
 |   BFuncDef(f, var_args_list, bstmt_list) ->
-        (* Function header *)
-        f ^ "(){\n" ^
+        (* Function header: Prefix all function names with __F *)
+        "__F" ^ f ^ "(){\n" ^
         (* Set count for function *)
         (__SETCOUNT__ (f ^ "__")) ^
         (* Statements *)
@@ -106,11 +116,18 @@ sh_of_bstmt bstmt =
         (* Add DECCOUNT before function end *)
         (__DECCOUNT__  (f ^ "__")) ^
         "}"
-|   BFuncCall(f, bexpr_list) ->
+
+(* TODO:f_expr is not used?? *)
+|   BFuncCall(f_expr, bexpr_list) ->
         let sh_bexpr_list = List.map (sh_of_bexpr) bexpr_list in
         let args = List.fold_left (fun acc x -> acc ^ " " ^ x)
             "" sh_bexpr_list in
-        f ^ args
+        (* f ^ args *)
+        let f_expr_str = sh_of_bexpr f_expr in
+
+        (* "__FUNCCALL__ " ^ f_expr_str ^ args *)
+        "__FUNCCALL__ " ^ args
+
 |   BReturn(scope_str) ->
         let pre_stmt = 
             if (scope_str = "") then ""

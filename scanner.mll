@@ -70,8 +70,13 @@ rule token =
     | ';'                       { SEMI }
     | ':'                       { COLON }
     | ','                       { COMMA }
+
     | '('                       { LPAREN }
     | ')'                       { RPAREN }
+    | '['                       { LBRACKET }
+    | ']'                       { RBRACKET }
+
+
     | '+'                       { PLUS }
     | '-'                       { MINUS }
     | '*'                       { TIMES }
