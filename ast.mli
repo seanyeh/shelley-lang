@@ -23,10 +23,11 @@ type expr =
 |   Asn of var * expr
 
 |   FuncCall of expr * expr list
-|   Subscript of var * expr
+|   Subscript of expr * expr
 
 |   Compare of compare_op * expr * expr
 |   Logical of logical_op * expr * expr
+|   RawExpr of string
 and
 
 var_args =

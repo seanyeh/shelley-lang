@@ -10,6 +10,7 @@
 %token <int> LITERAL
 %token <string> ID
 %token <string> STRING
+%token <string> RAWSTRING
 
 
 %start program
@@ -111,19 +112,8 @@ factor:
 power:
     /* some stuff */
     atom {$1}
-
-/*|   id trailer_list {FuncCall($1, $2)}*/
-|   trailer_list {$1}
-
-trailer_list:
-    id trailer_func {FuncCall(Var($1), $2)}
-
-|   id trailer_subscript {Subscript($1, $2)}
-
-/*|   trailer_list trailer_func {FuncCall($1, $2)}*/
-
-
-/*|   trailer trailer_list {$1 @ $2}*/
+|   power trailer_func {FuncCall($1, $2)}
+|   power trailer_subscript {Subscript($1, $2)}
 
 trailer_subscript:
     LBRACKET expr_stmt RBRACKET { $2 }
@@ -153,6 +143,7 @@ atom:
 |   LPAREN expr_stmt RPAREN {$2}
 
 |   LBRACKET listmaker RBRACKET { Array($2) }
+|   RAWSTRING {RawExpr($1)}
 
 listmaker:
     test {[$1]}

@@ -96,8 +96,14 @@ rule token =
     | "def "                    { DEF }
     | "return "                 { RETURN }
 
+    | "```" [^'`']* "```" as s  {
+                                    let len = String.length s in
+                                    let inner = String.sub s 3 (len - 6) in
+                                        RAWSTRING(inner)
+                                }
+
     | ['0'-'9']+ as lit         { LITERAL(int_of_string lit) }
-    | '"' [^'"']* '"'  as lxm   { STRING(lxm) }
+    | '"' [^'"']* '"'  as s     { STRING(s) }
     | ['a'-'z' 'A'-'Z' '_']['a'-'z' 'A'-'Z' '0'-'9' '_']* as lxm
                                 { ID(lxm) }
     | '='                       { ASN }
@@ -105,5 +111,5 @@ rule token =
     | _ as char { raise (Failure("illegal character " ^ Char.escaped char)) }
 
 and comment = parse
-  '\n'  { END_STMT }
-| _ as x     { comment lexbuf }
+    '\n'  { END_STMT }
+|   _ as x     { comment lexbuf }

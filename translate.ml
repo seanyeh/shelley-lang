@@ -65,6 +65,8 @@ let string_of_batom ?(btlevel = 0) ?(deref = false) ?(scope = "") a =  match a w
             let bt = __BT__ btlevel in
                 "\"" ^ bt ^ s ^ bt ^ "\""
 
+|   BRawString(s) -> s
+
 
 let string_of_barith_atom ?(btlevel = 0) ?(deref = false) ?(scope = "") batom = match batom with
     BArith_Op(op) -> string_of_op op
@@ -87,7 +89,8 @@ let rec sh_of_bexpr ?(deref = false) ?(scope = "") ?(btlevel = 0) bexpr = match 
         bt ^ f ^ args ^ bt
 
 |   NoBexpr ->
-        raise (Failure ("NoBexpr"))
+        ""
+        (* raise (Failure ("NoBexpr")) *)
 
 
 
@@ -118,15 +121,11 @@ sh_of_bstmt bstmt =
         "}"
 
 (* TODO:f_expr is not used?? *)
-|   BFuncCall(f_expr, bexpr_list) ->
+|   BFuncCall(fid, bexpr_list) ->
         let sh_bexpr_list = List.map (sh_of_bexpr) bexpr_list in
         let args = List.fold_left (fun acc x -> acc ^ " " ^ x)
             "" sh_bexpr_list in
-        (* f ^ args *)
-        let f_expr_str = sh_of_bexpr f_expr in
-
-        (* "__FUNCCALL__ " ^ f_expr_str ^ args *)
-        "__FUNCCALL__ " ^ args
+        fid ^ " " ^ args
 
 |   BReturn(scope_str) ->
         let pre_stmt = 

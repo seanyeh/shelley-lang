@@ -6,6 +6,8 @@ type batom =
 |   BId of string * string
 |   BRawId of string
 
+|   BRawString of string
+
 type barith_atom =
     BArith_Atom of batom
 |   BArith_Op of Ast.operator
@@ -20,7 +22,7 @@ type bexpr =
 type bstmt =
     BAsn of batom * bexpr * string * string
 |   BFuncDef of string * Ast.var_args list * bstmt list
-|   BFuncCall of bexpr * bexpr list
+|   BFuncCall of string * bexpr list
 |   BReturn of string
 |   BLogical of Ast.logical_op * bstmt * bstmt
 |   BRaw of string

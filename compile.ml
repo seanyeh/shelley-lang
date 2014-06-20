@@ -57,13 +57,6 @@ let rec find_in_scope ?(check = true) scope var = match var with
         (match scope with
     |   None ->
             raise (Failure ("Undefined variable: " ^ id))
-
-
-            (* (* BADHACK *) *)
-            (* if (id = "print" || id = "compare") then *)
-            (*     find_in_scope ~check:false global_scope var *)
-            (* else *)
-            (*     raise (Failure ("Undefined variable: " ^ id)) *)
     |   Scope(name, parent, vars_tbl) as curr_scope ->
             if (not check) || (Hashtbl.mem vars_tbl id) then(
                 (* (print_endline ("Found in scope: " ^ (string_of_id curr_scope id))); *)
@@ -112,53 +105,38 @@ let bytecode_of_var var scope =
 
 
 (* return list of barith_atom *)
-let rec bytecode_of_binop
-    ?(arg_counter = ref 0) ?(arg_scope = None) binop scope =
-
-        (* print_endline("bytecode_of_binop arg_scope:"^(string_of_scope arg_scope)); *)
-
+let rec bytecode_of_binop ?(arg_scope = None) binop scope =
     match binop with
 |   Binop(e1, op, e2) -> 
-        (* print_endline("  binop"); *)
         let pre_stmts, barith_list1 =
-            bytecode_of_binop e1 scope
-                ~arg_counter:arg_counter ~arg_scope:arg_scope in
+            bytecode_of_binop e1 scope ~arg_scope:arg_scope in
         let post_stmts, barith_list2 =
-            bytecode_of_binop e2 scope
-                ~arg_counter:arg_counter ~arg_scope:arg_scope in
+            bytecode_of_binop e2 scope ~arg_scope:arg_scope in
         let barith_list_acc = 
             barith_list1 @ [Bytecode.BArith_Op(op)] @ barith_list2 in
         (pre_stmts @ post_stmts), barith_list_acc
 
 |   Lit(x) ->
-        (* print_endline("  lit:"^(string_of_int x)); *)
         [], [Bytecode.BArith_Atom(Bytecode.BLit(x))]
 |   Var(var) ->
-        (* print_endline("  var:"^(id_of_var var)); *)
         let bid = bytecode_of_var var scope in
 
         [], [Bytecode.BArith_Atom(bid)]
-
-
 (* A function call as a value in a binop statement *)
 |   FuncCall(fid_expr, fexpr_list) ->
         (* Get statements for function call *)
         let pre_stmts = 
             bytecode_of_funccall fid_expr fexpr_list scope ~arg_scope:arg_scope in
 
-
-
         (* TODO: make code clean *)
         let prev_arg_scope = match arg_scope with
         |   None -> scope | _ -> arg_scope in
-
 
         (* Create new arg scope for arguments to an expr statement *)
         let new_arg_scope = (create_inner_scope prev_arg_scope "EXPRARG") in
 
         (* Temp (EXPR) arg variable for expr *)
         let temp_arg = "EXPR" ^ string_of_int !expr_counter in
-        (* let temp_id = (TempId(temp_arg, new_arg_scope)) in *)
         let temp_id = (TempId(temp_arg, new_arg_scope)) in
 
         (* Side effect! *)
@@ -169,7 +147,7 @@ let rec bytecode_of_binop
                             ~arg_scope:new_arg_scope in
 
         let _, barith_list = bytecode_of_binop (Var(temp_id)) scope
-            ~arg_scope:arg_scope ~arg_counter:arg_counter
+            ~arg_scope:arg_scope
         in
 
         pre_stmts @ temp_asn, barith_list
@@ -259,10 +237,8 @@ and bytecode_of_expr ?(arg_scope = None) expr scope = match expr with
         (* Generate temp function definition for both expressions *)
         let gen_func_def temp_fid expr =
             let fstmts = 
-                (* (bytecode_of_asn temp_id expr scope ~arg_scope:arg_scope) @ return_stmt *)
                 [Expr(Asn(temp_id, expr))] @ [return_stmt]
             in
-            (* bytecode_of_stmt (FuncDef((TempId(temp_fid, None)), [], fstmts)) scope *)
             bytecode_of_stmt (FuncDef((Id(temp_fid)), [], fstmts)) scope
         in
 
@@ -274,19 +250,10 @@ and bytecode_of_expr ?(arg_scope = None) expr scope = match expr with
             (gen_func_def (temp_fid1) e1) @
             (gen_func_def (temp_fid2) e2) @
 
-
-            (* [Bytecode.BLogical(op, *)
-            (*     Bytecode.BFuncCall(temp_fid1, []), *)
-            (*     Bytecode.BFuncCall(temp_fid2, []))] @ *)
-
-            (* temp *)
-            (* FIX THIS  *)
-
-            (* [Bytecode.BRaw("__F__TEMP__"^temp_fid1 ^ (Translate.string_of_logical_op op) ^ "__F__TEMP__"^temp_fid2)] @ *)
-            [Bytecode.BRaw("__F"^(string_of_scope scope)^temp_fid1 ^
-                (Translate.string_of_logical_op op) ^ "__F"^(string_of_scope scope)^temp_fid2)] @
-            (* ASDFASDFDSAFDSF *)
-
+            [Bytecode.BLogical(op,
+                Bytecode.BFuncCall("__F" ^ (string_of_scope scope) ^ temp_fid1, []),
+                Bytecode.BFuncCall("__F" ^ (string_of_scope scope) ^ temp_fid2, []))
+                ] @
 
 
         (* To stay for now. TODO: change this in future *)
@@ -294,16 +261,13 @@ and bytecode_of_expr ?(arg_scope = None) expr scope = match expr with
         in
 
         stmts, bexpr
+|   RawExpr(s) ->
+        [], Bytecode.BAtom(Bytecode.BRawString(s))
 
 
 (* return bstmt list *)
 and bytecode_of_funccall ?(arg_scope = None) id_expr expr_list scope =
     let pre_stmts, id_bexpr = bytecode_of_expr id_expr scope in
-
-    (* let id = match id_expr with *)
-    (* |   Var(x) -> x in *)
-
-    (* let scoped_fid = find_in_scope scope id in *)
 
     (* TODO: make code clean *)
     let prev_arg_scope = match arg_scope with
@@ -330,16 +294,13 @@ and bytecode_of_funccall ?(arg_scope = None) id_expr expr_list scope =
             [string_of_int (arg_counter - 1)]
     in
 
-    (* print_endline ("argscope:"^(string_of_scope new_arg_scope)); *)
-
     let func_args_list =
         (* Use string_of_id instead of find_in_scope because func (temp) args
          * are not found in scope *)
         List.map (fun x -> Bytecode.BAtom(Bytecode.BRawId(string_of_id new_arg_scope x)))
         (generate_temp_args !arg_counter) in
 
-    (* let funccall = Bytecode.BFuncCall(scoped_fid, func_args_list) in *)
-    let funccall = Bytecode.BFuncCall(id_bexpr, func_args_list) in
+    let funccall = Bytecode.BFuncCall("__FUNCCALL__", func_args_list) in
         pre_stmts @ temp_args_stmts @ [funccall]
 
 
@@ -355,6 +316,7 @@ and _assign_id_ ?(expr_type = "") var bexpr scope =
     let inferred_type = match bexpr with
     |   Bytecode.BArith_Expr(_) -> "i"
     |   Bytecode.BAtom(Bytecode.BLit(_)) -> "i"
+    |   Bytecode.BAtom(Bytecode.BRawString(_)) -> ""
     |   Bytecode.BAtom(Bytecode.BId(_, _)) -> "v" (* variable type *)
     |   Bytecode.BAtom(Bytecode.BRawId(_)) -> "v"
     |   _ -> "s"
@@ -393,6 +355,8 @@ and bytecode_of_asn ?(arg_scope = temp_scope) ?(expr_type = "") var expr scope =
 
 (* Return list of Bytecode.bstmt *)
 and bytecode_of_stmt stmt scope = match stmt with
+(* Expr *)
+|   Expr(RawExpr(s)) -> [Bytecode.BRaw(s)]
 |   Expr(e) -> 
         (* Ignore the value of the expr if it is a standalone statement *)
         let stmts, _ = bytecode_of_expr e scope in
