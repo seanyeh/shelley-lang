@@ -74,12 +74,7 @@ let rec find_in_scope ?(check = true) scope var = match var with
                 else
                     find_in_scope parent var
             )
-                
-                
-
-
 )
-
 
 
 (* For temp functions *)
@@ -99,6 +94,7 @@ let bytecode_of_var var scope =
     match var with
     (* BuiltinId's are normal variables *)
     |   BuiltinId(_, _) -> Bytecode.BRawId(scoped_var)
+
     (* TempId and Id are used with __GET__ and __SET__ *)
     |   TempId(_, _) -> Bytecode.BId(scoped_var, (string_of_scope found_scope))
     |   Id(_) -> Bytecode.BId(scoped_var, (string_of_scope found_scope))
@@ -139,7 +135,7 @@ let rec bytecode_of_binop ?(arg_scope = None) binop scope =
         let temp_arg = "EXPR" ^ string_of_int !expr_counter in
         let temp_id = (TempId(temp_arg, new_arg_scope)) in
 
-        (* Side effect! *)
+        (* Side effect! Increase global EXPR counter *)
         incr expr_counter;
 
         (* Assign temp (EXPR) arg = __RET__ *)
@@ -200,7 +196,7 @@ and bytecode_of_expr ?(arg_scope = None) expr scope = match expr with
         let bid = bytecode_of_var var scope in
         [], Bytecode.BAtom(bid)
 |   Array(expr_list) ->
-        let funccall = FuncCall(Var(TempId("__ARRAY__ create", None)), expr_list) in
+        let funccall = FuncCall(Var(BuiltinId("__ARRAY__ create", None)), expr_list) in
         let stmts, _ = bytecode_of_expr funccall scope in
         let _, return_id = bytecode_of_expr (Var(__RET__)) scope in
 
@@ -274,7 +270,6 @@ and bytecode_of_funccall ?(arg_scope = None) id_expr expr_list scope =
     |   None -> scope | _ -> arg_scope in
 
     let new_arg_scope = (create_inner_scope prev_arg_scope "ARG") in
-    (* let new_arg_scope = (create_inner_scope scope "ARG") in *)
     let arg_counter = ref 0 in
 
     let temp_args_stmts =
@@ -398,14 +393,11 @@ and bytecode_of_stmt stmt scope = match stmt with
 
         let func_def = Bytecode.BFuncDef(scoped_fid, var_args_list, func_stmts) in
 
-
-        (* [func_def] *)
         func_def :: fasn
 
 |   Return(expr) ->
         (* Assign __RET__ = expr and some boilerplate things *)
         bytecode_of_asn __RET__ expr scope @
-        (* [Bytecode.BReturn(string_of_scope scope ~recurse:false)] *)
         [Bytecode.BReturn(string_of_scope scope)]
 
 |   If(expr, stmt_list) ->

@@ -27,7 +27,7 @@ run_tests(){
         testfile="tests/$key.shly"
 
         expected_output=$(printf "${TESTS[$key]}")
-        output=$(cat $testfile | ./main.native | $shell)
+        output=$(cat $testfile | ./main.native | timeout 15s $shell)
 
         if [ $? -ne 0 ] || [ "$output" != "$expected_output" ]; then
             echo "Test $key:"

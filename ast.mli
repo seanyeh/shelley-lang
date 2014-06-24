@@ -10,8 +10,10 @@ type var =
 |   Id of string
 
 (* Like Id, but don't check for scope *)
+(* Used for temp binop argmuents (EXPR0, EXPR1...) *)
 |   TempId of string * scope
 
+(* Raw string ID *)
 |   BuiltinId of string * scope
 
 type expr =
