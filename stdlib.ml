@@ -1,5 +1,7 @@
+
 let source_files =
-    ["stdlib.sh";"stdarr.sh"]
+    (* ["stdlib.sh";"stdarr.sh"] *)
+    ["stdlib.sh"]
 
 let get_contents filename =
     let chan = open_in filename in
