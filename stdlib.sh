@@ -20,7 +20,7 @@ __F__GLOBAL__print() {
 # should write stdlib in shelly I think
 # __LOGICAL__ op e1 e2
 
-# __F__COMPARE__() {
+# __COMPARE__() {
 __F__GLOBAL__compare() {
     __TEMP__op="`__VAL__ "$1"`"
     __TEMP__e1="`__VAL__ "$2"`"
@@ -71,7 +71,7 @@ __GET__() {
     __TEMP__count="__COUNT""$1"
     if [ -z "`__DEREF__ $__TEMP__count`" ]; then
         echo "Scope not found: $1"
-        exit 1
+        # exit 1
     fi
 
     __TEMP__countval=`eval __PRINTF__ "\\$$__TEMP__count"`
@@ -131,9 +131,37 @@ __FUNCCALL__() {
     fi
 }
 
+__GETCLASS__(){
+    __TEMP__t=`__PRINTF__ $1 | head -c 1`
+    __TEMP__v=`__VAL__ "$1"`
+    if [ "$__TEMP__t" = "a" ]; then
+        __RET__="Array"
+    else
+        __RET__="$__TEMP__v"
+    fi
+
+    __RET__="Array"
+
+    __RETCODE__ $__RET__
+    return $?
+}
+
+# __GETFIELD__ classname field
+__GETFIELD__(){
+    # echo "GETFIELD: classname:$1 field:$2"
+    # __GET__ __GLOBAL__classname __GLOBAL__classname_field
+    classname="f__F__GLOBAL__$1"
+
+    __RET__="$classname""__$2"
+
+    # echo "GETFIELD: $__RET__"
+    __RETCODE__ $__RET__
+    return $?
+}
+
+
+
 
 # Global temp stuff
-# __GLOBAL__print="f__F__GLOBAL__print"
 __SET__ __GLOBAL__ __GLOBAL__print f__F__GLOBAL__print
 __SET__ __GLOBAL__ __GLOBAL__compare f__F__GLOBAL__compare
-# __SET__ __GLOBAL__ __COMPARE__ f__F__COMPARE__

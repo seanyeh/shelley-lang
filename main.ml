@@ -8,10 +8,13 @@ let compile lexbuf =
 let compile_string source =
     let lexbuf = Lexing.from_string source in
 
-    print_endline (compile lexbuf)
+    compile lexbuf
 
 
 let _ =
     let lexbuf = Lexing.from_channel stdin in
+    (* let stdlib = compile_string Stdlib.stdlib_source in *)
+    let stdlib = "" in
+    let result = Stdlib.sh_source ^ "\n" ^ stdlib ^ "\n" ^ (compile lexbuf) in
 
-    print_endline (compile lexbuf)
+    print_endline result

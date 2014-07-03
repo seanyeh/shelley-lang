@@ -13,8 +13,8 @@ type var =
 (* Used for temp binop argmuents (EXPR0, EXPR1...) *)
 |   TempId of string * scope
 
-(* Raw string ID *)
-|   BuiltinId of string * scope
+(* Raw string ID: name * is_var *)
+|   BuiltinId of string * bool
 
 type expr =
     Var of var
@@ -24,8 +24,12 @@ type expr =
 |   Array of expr list
 |   Asn of var * expr
 
+(* Trailers *)
+|   RawFuncCall of string * string list
+
 |   FuncCall of expr * expr list
 |   Subscript of expr * expr
+|   Dot of expr * var
 
 |   Compare of compare_op * expr * expr
 |   Logical of logical_op * expr * expr
@@ -39,6 +43,7 @@ var_args =
 type stmt =
     Expr of expr
 |   FuncDef of var * var_args list * stmt list
+|   ClassDef of var * stmt list
 |   Return of expr
 |   If of expr * stmt list
 |   NoStmt

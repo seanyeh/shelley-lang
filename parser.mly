@@ -1,11 +1,13 @@
 %{ open Ast %}
 
-%token PLUS MINUS TIMES DIVIDE EOF ASN SEQ NEWLINE SEMI END_STMT
-%token END DEF INDENT DEDENT COLON COMMA RPAREN LPAREN RETURN
-%token LBRACKET RBRACKET
+%token PLUS MINUS TIMES DIVIDE EOF ASN SEMI END_STMT
+%token DEF INDENT DEDENT COLON COMMA RPAREN LPAREN RETURN
+%token LBRACKET RBRACKET DOT
 
 %token OR AND EQ GT LT GTE LTE
 %token IF
+
+%token CLASS
 
 %token <int> LITERAL
 %token <string> ID
@@ -114,6 +116,7 @@ power:
     atom {$1}
 |   power trailer_func {FuncCall($1, $2)}
 |   power trailer_subscript {Subscript($1, $2)}
+|   power trailer_dot {Dot($1, $2)}
 
 trailer_subscript:
     LBRACKET expr_stmt RBRACKET { $2 }
@@ -121,6 +124,9 @@ trailer_subscript:
 trailer_func:
     LPAREN RPAREN {[]}
 |   LPAREN arglist RPAREN {$2}
+
+trailer_dot:
+    DOT id { $2 }
 
 arglist:
     /* some stuff */
@@ -157,6 +163,7 @@ listmaker:
 compound_stmt:
     if_stmt {$1}
 |   funcdef {$1}
+|   classdef{$1}
 
 if_stmt:
     IF test COLON suite { If($2, $4) }
@@ -188,3 +195,12 @@ end_token: SEMI {} | END_STMT {}
 end_stmt:
     end_token       {}
 |   end_token end_stmt {$2}
+
+
+
+/*
+ * Class definition
+ */
+
+classdef:
+    CLASS id COLON suite {ClassDef($2, $4)}

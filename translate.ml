@@ -51,12 +51,13 @@ let __SET__ scope id =
 let string_of_batom ?(btlevel = 0) ?(deref = false) ?(scope = "") a =  match a with
     BLit(x) -> string_of_int(x)
 |   BStr(s) -> s
-|   BRawId(id) ->
-        let s = "\"$" ^ id ^ "\"" in
+|   BRawId(id, is_var) ->
+        let s = if is_var then "\"$" ^ id ^ "\""
+                          else id
+        in
         if deref then (val_of_id s btlevel)
                  else s
 |   BId(id, scope_TEMP) ->
-        (* print_endline("TRANSLATE:"^id^" scope:"^scope_TEMP); *)
         let s = "__GET__ " ^ scope_TEMP ^ " \"" ^ id ^ "\"" in
         if deref then
             let bt = __BT__ (btlevel+1) in
@@ -92,15 +93,13 @@ let rec sh_of_bexpr ?(deref = false) ?(scope = "") ?(btlevel = 0) bexpr = match 
         ""
         (* raise (Failure ("NoBexpr")) *)
 
-
-
 and
 
 sh_of_bstmt bstmt = 
     match bstmt with
 |   BAsn(batom, e, t, scope_str) ->
         let asn = match batom with
-        |   BRawId(id) -> id ^ "="
+        |   BRawId(id, _) -> id ^ "="
         |   BId(id, scope_TEMP) -> __SET__ scope_str id
         in
 
@@ -155,5 +154,4 @@ sh_of_bstmt_list bstmt_list =
 and
 sh_of_bytecode program = match program with
     BStmt_List(l) -> 
-        Stdlib.source ^
         sh_of_bstmt_list l

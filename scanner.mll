@@ -70,6 +70,7 @@ rule token =
     | ';'                       { SEMI }
     | ':'                       { COLON }
     | ','                       { COMMA }
+    | '.'                       { DOT }
 
     | '('                       { LPAREN }
     | ')'                       { RPAREN }
@@ -96,7 +97,10 @@ rule token =
     | "def "                    { DEF }
     | "return "                 { RETURN }
 
-    | "```" [^'`']* "```" as s  {
+    | "class "                  { CLASS }
+
+
+    | "```" ([^'`']*("`"[^'`'])*)* "```" as s  {
                                     let len = String.length s in
                                     let inner = String.sub s 3 (len - 6) in
                                         RAWSTRING(inner)
@@ -113,3 +117,5 @@ rule token =
 and comment = parse
     '\n'  { END_STMT }
 |   _ as x     { comment lexbuf }
+
+

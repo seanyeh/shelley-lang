@@ -1,7 +1,9 @@
-
-let source_files =
+let sh_files =
     (* ["stdlib.sh";"stdarr.sh"] *)
     ["stdlib.sh"]
+
+let stdlib_files =
+    ["stdlib.shly"]
 
 let get_contents filename =
     let chan = open_in filename in
@@ -11,5 +13,10 @@ let get_contents filename =
         close_in chan;
         s
 
-let source =
-    List.fold_left (fun acc x -> acc ^ (get_contents x)) "" source_files
+let add_sources acc x = acc ^ "\n" ^ (get_contents x)
+
+let sh_source =
+    List.fold_left add_sources "" sh_files
+
+let stdlib_source =
+    List.fold_left add_sources "" stdlib_files

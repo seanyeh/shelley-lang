@@ -4,7 +4,9 @@ type batom =
     BLit of int
 |   BStr of string
 |   BId of string * string
-|   BRawId of string
+
+(* id * is_var *)
+|   BRawId of string * bool
 
 |   BRawString of string
 
