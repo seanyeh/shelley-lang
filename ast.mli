@@ -22,7 +22,7 @@ type expr =
 |   Lit of int
 |   Str of string
 |   Array of expr list
-|   Asn of var * expr
+|   Asn of expr * expr
 
 (* Trailers *)
 |   RawFuncCall of string * string list

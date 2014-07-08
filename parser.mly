@@ -55,7 +55,7 @@ return_stmt:
 
 expr_stmt:
     testlist {$1}
-|   id ASN testlist { Asn($1, $3) }
+|   id ASN testlist { Asn(Var($1), $3) }
 
 testlist:
     test {$1}

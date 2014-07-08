@@ -140,7 +140,7 @@ let rec bytecode_of_binop binop scope =
         incr expr_counter;
 
         (* Assign temp (EXPR) arg = __RET__ *)
-        let temp_asn = bytecode_of_asn temp_id (Var(__RET__)) scope
+        let temp_asn = bytecode_of_asn (Var(temp_id)) (Var(__RET__)) scope
         in
 
         let _, barith_list = bytecode_of_binop (Var(temp_id)) scope
@@ -212,7 +212,7 @@ and bytecode_of_expr expr scope = match expr with
 |   Asn(id, e) -> 
         (* See bytecode_of_asn *)
         let pre_stmts = bytecode_of_asn id e scope in
-        let _, var_bexpr =  (bytecode_of_expr (Var(id)) scope) in
+        let _, var_bexpr =  (bytecode_of_expr id scope) in
         pre_stmts, var_bexpr
 
 (* RawFuncCall only for internal use *)
@@ -231,12 +231,22 @@ and bytecode_of_expr expr scope = match expr with
         bytecode_of_funccall id_expr expr_list scope, return_expr
 
 |   Dot(id_expr, id_field) ->
-
-
-        let getclass_func = FuncCall(Var(BuiltinId("f__GETCLASS__", false)), [id_expr]) in
+        (* (* __GETCLASS__ *) *)
+        (* let getclass_func_id = *)
+        (*     Var(BuiltinId("f__GETCLASS__", false)) in *)
+        (* let getclass_args = [id_expr] in *)
+        (* let getclass_func = *)
+        (*     FuncCall(getclass_func_id, getclass_args) in *)
 
         let field_name = id_of_var id_field in
-        let getfield_func = FuncCall(Var(BuiltinId("f__GETFIELD__", false)),[getclass_func;Var(BuiltinId(field_name, false))]) in
+
+        (* __GETFIELD__ *)
+        let getfield_func_id =
+            Var(BuiltinId("f__GETFIELD__", false)) in
+        let getfield_args =
+            [id_expr; Var(BuiltinId(field_name, false))] in
+        let getfield_func =
+            FuncCall(getfield_func_id, getfield_args) in
 
         bytecode_of_expr getfield_func scope 
 
@@ -256,7 +266,7 @@ and bytecode_of_expr expr scope = match expr with
         (* Generate temp function definition for both expressions *)
         let gen_func_def temp_fid expr =
             let fstmts = 
-                [Expr(Asn(temp_id, expr))] @ [return_stmt]
+                [Expr(Asn(Var(temp_id), expr))] @ [return_stmt]
             in
             bytecode_of_stmt (FuncDef((Id(temp_fid)), [], fstmts)) scope
         in
@@ -297,7 +307,7 @@ and bytecode_of_funccall id_expr expr_list scope =
     let temp_args_stmts =
         List.fold_left (fun acc expr ->
             let temp_arg = "ARG" ^ (string_of_int !arg_counter) in
-            let bytecode_of_e = bytecode_of_asn (BuiltinId(temp_arg, true)) expr scope
+            let bytecode_of_e = bytecode_of_asn (Var((BuiltinId(temp_arg, true)))) expr scope
                 in
                     incr arg_counter;
                     acc @ bytecode_of_e
@@ -347,14 +357,18 @@ and _assign_id_ ?(expr_type = "") var bexpr scope =
         Bytecode.BAsn(bid, bexpr, expr_type, (string_of_scope scope))
 
 (* Return list of Bytecode.bstmt *)
-and bytecode_of_asn ?(expr_type = "") var expr scope =
+and bytecode_of_asn ?(expr_type = "") var_expr expr scope =
+    let var_of_expr vexpr = match vexpr with
+    | Var(v) -> v | _ -> Id("FAIL") in
+
+    let var = var_of_expr var_expr in
 
     match expr with
     |   Asn(id2, expr2) ->
             (* string_of_id instead of find_in_scope because id2 is not defined
              * yet, but guaranteed to be in scope *)
             (* I sense possible bugs here... *)
-            let scoped_id2, _ = find_in_scope scope id2 ~check:false in
+            let scoped_id2, _ = find_in_scope scope (var_of_expr id2) ~check:false in
             (*...*)
 
             let batom_id2 = Bytecode.BAtom(Bytecode.BId(scoped_id2, (string_of_scope scope))) in
@@ -387,7 +401,7 @@ and bytecode_of_stmt stmt scope = match stmt with
         (* Assign function variable to function *)
         (* e.g. set helloworld=__F__helloworld *)
         let temp_fid, _ = find_in_scope scope fid ~check:false in
-        let fasn = bytecode_of_asn fid (Str("__F" ^ temp_fid)) scope ~expr_type:"f" in
+        let fasn = bytecode_of_asn (Var(fid)) (Str("__F" ^ temp_fid)) scope ~expr_type:"f" in
 
         (* Create inner scope with function name *)
         let inner_scope = create_inner_scope scope (id_of_var fid) in
@@ -406,7 +420,7 @@ and bytecode_of_stmt stmt scope = match stmt with
                     let arg_i = (Var(BuiltinId(arg_name, true)))
                     in
 
-                    (bytecode_of_asn (var_of_varargs x) arg_i inner_scope)
+                    (bytecode_of_asn (Var(var_of_varargs x)) arg_i inner_scope)
                     @ (create_var_arg_stmts xs ~i:(i+1))
         in
         let var_arg_stmts = create_var_arg_stmts var_args_list in
@@ -422,7 +436,7 @@ and bytecode_of_stmt stmt scope = match stmt with
 
 |   Return(expr) ->
         (* Assign __RET__ = expr and some boilerplate things *)
-        bytecode_of_asn __RET__ expr scope @
+        bytecode_of_asn (Var(__RET__)) expr scope @
         [Bytecode.BReturn(string_of_scope scope)]
 
 |   If(expr, stmt_list) ->
@@ -430,19 +444,24 @@ and bytecode_of_stmt stmt scope = match stmt with
         let scoped_id, _ = find_in_scope scope temp_id in
         let bstmt_list = bytecode_of_stmt_list stmt_list ~scope:scope in
 
-        bytecode_of_asn temp_id expr scope @
+        bytecode_of_asn (Var(temp_id)) expr scope @
         [Bytecode.BIf(scoped_id, bstmt_list)]
 
 |   ClassDef(cid, stmts) ->
         (* First argument to class function is the class method *)
         (* TODO: rename method to something else *)
-        let hack_TEMP = Expr(RawExpr("method=\"$1\"")) in
+        let hack_TEMP = Expr(RawExpr("varname=\"$1\"")) in
 
         (* let eval_stmt =  *)
         (*     Expr(RawFuncCall("eval", ["\"__F__GLOBAL__Array__`__VAL__ $method` \"$@\"\""])) in *)
 
+        let init_func_id =
+            Var(BuiltinId("f__F__GLOBAL__Array__init $varname $2", false)) in
+        let init_func =
+            FuncCall(init_func_id, []) in
         let return_stmt =
-            Return(RawExpr("__F__GLOBAL__Array__$method")) in
+            Return(init_func) in
+
 
         let new_stmts = [hack_TEMP] @ stmts @ [return_stmt] in
 

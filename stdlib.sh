@@ -63,7 +63,8 @@ __SET__() {
 
     __TEMP__countval=`eval __PRINTF__ "\\$$__TEMP__count"`
     __TEMP__varname="__COUNT$__TEMP__countval$2"
-    eval "$__TEMP__varname=$3"
+
+    eval "$__TEMP__varname=\"$3\""
 }
 
 # __GET__ scope var
@@ -115,7 +116,7 @@ __FUNCCALL__() {
 
     if [ "$__TEMP__t" = "f" ]; then
         # If function does not exist
-        type $__TEMP__v > /dev/null
+        type $__TEMP__v > /dev/null 2>&1
         if [ $? -ne 0 ] ; then
             echo "Runtime Error: function $__TEMP__v not found"
             return 1
@@ -140,19 +141,31 @@ __GETCLASS__(){
         __RET__="$__TEMP__v"
     fi
 
-    __RET__="Array"
-
-    __RETCODE__ $__RET__
-    return $?
+    __PRINTF__ "$__RET__"
 }
 
-# __GETFIELD__ classname field
-__GETFIELD__(){
-    # echo "GETFIELD: classname:$1 field:$2"
-    # __GET__ __GLOBAL__classname __GLOBAL__classname_field
-    classname="f__F__GLOBAL__$1"
 
-    __RET__="$classname""__$2"
+# __GETFIELD__ obj field
+__GETFIELD__(){
+    echo "GETFIELD: obj:$1 field:$2"
+    # __GET__ __GLOBAL__classname __GLOBAL__classname_field
+
+    classname="f__F__GLOBAL__`__GETCLASS__ "$1"`"
+    funcname="$classname""__$2"
+    __RET__="$funcname  $1"
+
+    echo "function: $funcname"
+    # If function does not exist, then assume field is a variable
+    type $funcname > /dev/null 2>&1
+    if [ $? -ne 0 ] ; then
+        # TODO: error checking?
+
+        thisvar="`__VAL__ $1`""__$2"
+
+        __RET__=`__GET__ $thisvar`
+        echo "Return:$thisvar"
+    fi
+
 
     # echo "GETFIELD: $__RET__"
     __RETCODE__ $__RET__

@@ -47,14 +47,17 @@ let __SET__ scope id =
     gen_cmd ["__SET__";scope;id] ~newline:false
 
 
+(* TODO: create settings object instead of multiple optional params *)
 
-let string_of_batom ?(btlevel = 0) ?(deref = false) ?(scope = "") a =  match a with
+let string_of_batom ?(btlevel = 0) ?(deref = false) ?(scope = "") ?(quote = true) a =  match a with
     BLit(x) -> string_of_int(x)
 |   BStr(s) -> s
 |   BRawId(id, is_var) ->
-        let s = if is_var then "\"$" ^ id ^ "\""
-                          else id
-        in
+        (* If is var, prepend with "$" *)
+        let s = if is_var then "$" ^ id else id in
+        (* If quote=true, then surround with quotes *)
+        let s = if quote then "\"" ^ s ^ "\"" else s in
+
         if deref then (val_of_id s btlevel)
                  else s
 |   BId(id, scope_TEMP) ->
@@ -73,8 +76,8 @@ let string_of_barith_atom ?(btlevel = 0) ?(deref = false) ?(scope = "") batom = 
     BArith_Op(op) -> string_of_op op
 |   BArith_Atom(a) -> string_of_batom a ~btlevel:btlevel ~deref:deref ~scope:scope
 
-let rec sh_of_bexpr ?(deref = false) ?(scope = "") ?(btlevel = 0) bexpr = match bexpr with
-    BAtom(a) -> string_of_batom a ~deref:deref ~scope:scope
+let rec sh_of_bexpr ?(deref = false) ?(scope = "") ?(btlevel = 0) ?(quote=true) bexpr = match bexpr with
+    BAtom(a) -> string_of_batom a ~deref:deref ~scope:scope ~quote:quote
 
 |   BArith_Expr(barith_atoms) -> 
         let bt = __BT__ btlevel in
@@ -119,12 +122,22 @@ sh_of_bstmt bstmt =
         (__DECCOUNT__  (f ^ "__")) ^
         "}"
 
-(* TODO:f_expr is not used?? *)
 |   BFuncCall(fid, bexpr_list) ->
-        let sh_bexpr_list = List.map (sh_of_bexpr) bexpr_list in
-        let args = List.fold_left (fun acc x -> acc ^ " " ^ x)
-            "" sh_bexpr_list in
-        fid ^ " " ^ args
+        if List.length bexpr_list = 0 then
+            fid
+        else
+            (* Don't put quotes around the first argument (function name) *)
+            let first_bexpr = List.hd bexpr_list in
+            let first_arg = sh_of_bexpr first_bexpr ~quote:false in
+
+            (* Rest of the arguments *)
+            let rest_bexpr = List.tl bexpr_list in
+            let sh_rest_bexpr = List.map (sh_of_bexpr) rest_bexpr in
+            let args = List.fold_left (fun acc x -> acc ^ " " ^ x)
+                "" sh_rest_bexpr in
+
+
+            fid ^ " " ^ first_arg ^ " " ^ args
 
 |   BReturn(scope_str) ->
         let pre_stmt = 
