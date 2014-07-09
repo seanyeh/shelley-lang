@@ -36,10 +36,10 @@ let id_of_var var = match var with
 
 let _add_to_scope_ scope var = match scope with
 |   None -> raise (Failure ("Non-existent scope"))
-|   Scope(_, _, vars_tbl) -> 
+|   Scope(_, _, vars_tbl) ->
         Hashtbl.replace vars_tbl (id_of_var var) ""
 
-let global_scope = 
+let global_scope =
     let scope = Scope("__GLOBAL", None, Hashtbl.create 10) in
     _add_to_scope_ scope (BuiltinId("print", false));
     _add_to_scope_ scope (BuiltinId("compare", false));
@@ -54,7 +54,7 @@ let rec find_in_scope ?(check = true) scope var = match var with
         (string_of_id None id), scope
 |   TempId(id, scope2) ->
         (string_of_id scope id), scope
-|   Id(id) -> 
+|   Id(id) ->
         (match scope with
     |   None ->
             raise (Failure ("Undefined variable: " ^ id))
@@ -66,10 +66,10 @@ let rec find_in_scope ?(check = true) scope var = match var with
             else(
                 (* hack: TODO: make some universal scope instead of multiple *)
                 (* branches of scope *)
-                let check_global = 
+                let check_global =
                     (name <> "__GLOBAL") && (match parent with None -> true | _ -> false)
                 in
-                
+
                 if check_global then
                     find_in_scope global_scope var
                 else
@@ -104,12 +104,12 @@ let bytecode_of_var var scope =
 (* return list of barith_atom *)
 let rec bytecode_of_binop binop scope =
     match binop with
-|   Binop(e1, op, e2) -> 
+|   Binop(e1, op, e2) ->
         let pre_stmts, barith_list1 =
             bytecode_of_binop e1 scope in
         let post_stmts, barith_list2 =
             bytecode_of_binop e2 scope in
-        let barith_list_acc = 
+        let barith_list_acc =
             barith_list1 @ [Bytecode.BArith_Op(op)] @ barith_list2 in
         (pre_stmts @ post_stmts), barith_list_acc
 
@@ -122,7 +122,7 @@ let rec bytecode_of_binop binop scope =
 (* A function call as a value in a binop statement *)
 |   FuncCall(fid_expr, fexpr_list) ->
         (* Get statements for function call *)
-        let pre_stmts = 
+        let pre_stmts =
             bytecode_of_funccall fid_expr fexpr_list scope in
 
         (* (* TODO: make code clean *) *)
@@ -148,9 +148,9 @@ let rec bytecode_of_binop binop scope =
 
         pre_stmts @ temp_asn, barith_list
 
-|   Str(_) -> 
+|   Str(_) ->
         raise (Failure ("Strings do not support arithmetic operators"))
-        
+
 
 and bytecode_of_compare op e1 e2 scope =
     (* Converts a compare to a series of Logical && statements *)
@@ -191,7 +191,7 @@ and bytecode_of_expr expr scope = match expr with
 
 |   Lit(x) -> [], Bytecode.BAtom(Bytecode.BLit(x))
 |   Str(x) -> [], Bytecode.BAtom(Bytecode.BStr(x))
-|   Var(var) -> 
+|   Var(var) ->
         (* See bytecode_of_var *)
         let bid = bytecode_of_var var scope in
         [], Bytecode.BAtom(bid)
@@ -203,13 +203,13 @@ and bytecode_of_expr expr scope = match expr with
 (*  *)
 (*         stmts, return_id *)
 
-|   Binop(e1, op, e2) -> 
+|   Binop(e1, op, e2) ->
         (* See bytecode_of_binop *)
-        let pre_stmts, barith_atom_list = 
+        let pre_stmts, barith_atom_list =
             bytecode_of_binop (Binop(e1, op, e2)) scope in
         pre_stmts, Bytecode.BArith_Expr(barith_atom_list)
 
-|   Asn(id, e) -> 
+|   Asn(id, e) ->
         (* See bytecode_of_asn *)
         let pre_stmts = bytecode_of_asn id e scope in
         let _, var_bexpr =  (bytecode_of_expr id scope) in
@@ -222,7 +222,7 @@ and bytecode_of_expr expr scope = match expr with
             List.map (fun x -> Bytecode.BAtom(Bytecode.BRawString(x))) arg_list in
 
         [Bytecode.BFuncCall(id, bexpr_list)], return_id
-        
+
 
 |   FuncCall(id_expr, expr_list) ->
         (* See bytecode_of_funccall *)
@@ -248,7 +248,7 @@ and bytecode_of_expr expr scope = match expr with
         let getfield_func =
             FuncCall(getfield_func_id, getfield_args) in
 
-        bytecode_of_expr getfield_func scope 
+        bytecode_of_expr getfield_func scope
 
 
 |   Compare(op, e1, e2) ->
@@ -265,7 +265,7 @@ and bytecode_of_expr expr scope = match expr with
 
         (* Generate temp function definition for both expressions *)
         let gen_func_def temp_fid expr =
-            let fstmts = 
+            let fstmts =
                 [Expr(Asn(Var(temp_id), expr))] @ [return_stmt]
             in
             bytecode_of_stmt (FuncDef((Id(temp_fid)), [], fstmts)) scope
@@ -300,7 +300,7 @@ and bytecode_of_funccall id_expr expr_list scope =
 
     let num_args = List.length (id_expr::expr_list) in
     let arg_counter = ref !global_arg_counter in
-    
+
     (* update global arg counter *)
     global_arg_counter := (num_args + !global_arg_counter);
 
@@ -334,7 +334,7 @@ and bytecode_of_funccall id_expr expr_list scope =
         pre_stmts @ temp_args_stmts @ [funccall]
 
 
-(* Adds variable to scope 
+(* Adds variable to scope
  * !! SIDE EFFECT !!*)
 and _assign_id_ ?(expr_type = "") var bexpr scope =
 
@@ -357,7 +357,7 @@ and _assign_id_ ?(expr_type = "") var bexpr scope =
         Bytecode.BAsn(bid, bexpr, expr_type, (string_of_scope scope))
 
 (* Return list of Bytecode.bstmt *)
-and bytecode_of_asn ?(expr_type = "") var_expr expr scope =
+and bytecode_of_asn ?(expr_type = "") expr1 expr2 scope =
     let var_of_expr vexpr = match vexpr with
     | Var(v) -> v | _ -> Id("FAIL") in
 
@@ -372,8 +372,8 @@ and bytecode_of_asn ?(expr_type = "") var_expr expr scope =
             (*...*)
 
             let batom_id2 = Bytecode.BAtom(Bytecode.BId(scoped_id2, (string_of_scope scope))) in
-            
-            (bytecode_of_asn id2 expr2 scope ~expr_type:expr_type) @ 
+
+            (bytecode_of_asn id2 expr2 scope ~expr_type:expr_type) @
                 [_assign_id_ var batom_id2 scope ~expr_type:expr_type]
 
         (* Assign scoped_id <- __RET for FuncCall *)
@@ -391,7 +391,7 @@ and bytecode_of_asn ?(expr_type = "") var_expr expr scope =
 and bytecode_of_stmt stmt scope = match stmt with
 (* Expr *)
 |   Expr(RawExpr(s)) -> [Bytecode.BRaw(s)]
-|   Expr(e) -> 
+|   Expr(e) ->
         (* Ignore the value of the expr if it is a standalone statement *)
         let stmts, _ = bytecode_of_expr e scope in
 
