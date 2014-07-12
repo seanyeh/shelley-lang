@@ -48,12 +48,16 @@ let global_scope =
 let temp_scope = Scope("__TEMP", None, Hashtbl.create 10)
 
 
-
+(* Returns scoped_string, scope *)
 let rec find_in_scope ?(check = true) scope var = match var with
 |   BuiltinId(id, _) ->
         (string_of_id None id), scope
+
+(* TODO: works but WTF is scope2 and scope?? *)
 |   TempId(id, scope2) ->
-        (string_of_id scope id), scope
+        (string_of_id scope2 id), scope
+
+
 |   Id(id) ->
         (match scope with
     |   None ->
@@ -230,7 +234,7 @@ and bytecode_of_expr expr scope = match expr with
         let _, return_expr = bytecode_of_expr (Var(__RET__)) scope in
         bytecode_of_funccall id_expr expr_list scope, return_expr
 
-|   Dot(id_expr, id_field) ->
+|   Dot(id_expr, id_field, is_asn) ->
         (* (* __GETCLASS__ *) *)
         (* let getclass_func_id = *)
         (*     Var(BuiltinId("f__GETCLASS__", false)) in *)
@@ -239,12 +243,13 @@ and bytecode_of_expr expr scope = match expr with
         (*     FuncCall(getclass_func_id, getclass_args) in *)
 
         let field_name = id_of_var id_field in
+        let is_asn_arg = if is_asn then Lit(1) else Lit(0) in
 
         (* __GETFIELD__ *)
         let getfield_func_id =
             Var(BuiltinId("f__GETFIELD__", false)) in
         let getfield_args =
-            [id_expr; Var(BuiltinId(field_name, false))] in
+            [id_expr; Var(BuiltinId(field_name, false)); is_asn_arg] in
         let getfield_func =
             FuncCall(getfield_func_id, getfield_args) in
 
@@ -357,34 +362,71 @@ and _assign_id_ ?(expr_type = "") var bexpr scope =
         Bytecode.BAsn(bid, bexpr, expr_type, (string_of_scope scope))
 
 (* Return list of Bytecode.bstmt *)
-and bytecode_of_asn ?(expr_type = "") expr1 expr2 scope =
-    let var_of_expr vexpr = match vexpr with
-    | Var(v) -> v | _ -> Id("FAIL") in
+and bytecode_of_asn ?(expr_type = "") expr1 val_expr scope =
 
-    let var = var_of_expr var_expr in
 
-    match expr with
-    |   Asn(id2, expr2) ->
-            (* string_of_id instead of find_in_scope because id2 is not defined
-             * yet, but guaranteed to be in scope *)
-            (* I sense possible bugs here... *)
-            let scoped_id2, _ = find_in_scope scope (var_of_expr id2) ~check:false in
-            (*...*)
+    (* var.x -> BAsn(BId(SCOPED__VAR__X), expr2, "", scope of var *)
 
-            let batom_id2 = Bytecode.BAtom(Bytecode.BId(scoped_id2, (string_of_scope scope))) in
 
-            (bytecode_of_asn id2 expr2 scope ~expr_type:expr_type) @
-                [_assign_id_ var batom_id2 scope ~expr_type:expr_type]
+
+
+    (* let get_rightmost dot_expr = *)
+    (*     match dot_expr with *)
+    (*     | Var(v) -> v *)
+    (*     | Dot(e1, v) ->  *)
+
+
+    (* if expr1 is Dot, then get *)
+    let pre_stmts, var = match expr1 with
+    | Dot(e1, v, is_asn) ->
+            let temp_stmt = Asn(Var(BuiltinId("TEMPFUN", true)), Dot(e1, v, true)) in
+            let temp_stmts, _ = bytecode_of_expr temp_stmt scope in
+            (* let temp_stmts, temp_bexpr = bytecode_of_expr e1 scope in *)
+
+            (* Can we assume temp_bexpr is always __RET__? *)
+            temp_stmts, TempId("$TEMPFUN", None)
+
+    | Var(v) -> [], v
+    in
+
+
+
+
+    (* let var_of_expr vexpr = match vexpr with *)
+    (* | Var(v) -> v *)
+    (* (* | Dot(e1, var) -> *) *)
+    (* (*         bytecode_of_expr e1 *) *)
+    (* (*         var_of_expr e1 *) *)
+    (* | _ -> raise (Failure ("Invalid Assignment")) *)
+    (* in *)
+
+    (* let var = var_of_expr expr1 in *)
+
+    match val_expr with
+    (* |   Asn(id2, expr2) -> *)
+    (*         (* string_of_id instead of find_in_scope because id2 is not defined *)
+    (*          * yet, but guaranteed to be in scope *) *)
+    (*         (* I sense possible bugs here... *) *)
+    (*         let scoped_id2, _ = find_in_scope scope (var_of_expr id2) ~check:false in *)
+    (*         (*...*) *)
+    (*  *)
+    (*         let batom_id2 = Bytecode.BAtom(Bytecode.BId(scoped_id2, (string_of_scope scope))) in *)
+    (*  *)
+    (*         pre_stmts @ *)
+    (*         (bytecode_of_asn id2 expr2 scope ~expr_type:expr_type) @ *)
+    (*             [_assign_id_ var batom_id2 scope ~expr_type:expr_type] *)
 
         (* Assign scoped_id <- __RET for FuncCall *)
     |   FuncCall(fid, fexpr_list) ->
             let _, return_id = bytecode_of_expr (Var(__RET__)) scope in
+            pre_stmts @
                 (bytecode_of_funccall fid fexpr_list scope)
                 @ [_assign_id_ var return_id scope ~expr_type:expr_type]
 
         (* Otherwise, e is Lit, Id, or Binop *)
-    |   e -> let pre_stmts, bexpr = bytecode_of_expr e scope in
-            pre_stmts @ [_assign_id_ var bexpr scope ~expr_type:expr_type]
+    |   e -> let pre_stmts2, bexpr = bytecode_of_expr e scope in
+            pre_stmts @
+            pre_stmts2 @ [_assign_id_ var bexpr scope ~expr_type:expr_type]
 
 
 (* Return list of Bytecode.bstmt *)

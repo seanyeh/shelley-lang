@@ -29,7 +29,7 @@ type expr =
 
 |   FuncCall of expr * expr list
 |   Subscript of expr * expr
-|   Dot of expr * var
+|   Dot of expr * var * bool
 
 |   Compare of compare_op * expr * expr
 |   Logical of logical_op * expr * expr

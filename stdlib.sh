@@ -145,16 +145,15 @@ __GETCLASS__(){
 }
 
 
-# __GETFIELD__ obj field
+# __GETFIELD__ obj field (opt: is_asn)
 __GETFIELD__(){
-    echo "GETFIELD: obj:$1 field:$2"
-    # __GET__ __GLOBAL__classname __GLOBAL__classname_field
+    # echo "GETFIELD: obj:$1 field:$2 use_get:$3"
 
     classname="f__F__GLOBAL__`__GETCLASS__ "$1"`"
     funcname="$classname""__$2"
     __RET__="$funcname  $1"
 
-    echo "function: $funcname"
+    # echo "function: $funcname"
     # If function does not exist, then assume field is a variable
     type $funcname > /dev/null 2>&1
     if [ $? -ne 0 ] ; then
@@ -162,12 +161,15 @@ __GETFIELD__(){
 
         thisvar="`__VAL__ $1`""__$2"
 
-        __RET__=`__GET__ $thisvar`
-        echo "Return:$thisvar"
+        # __RET__=`__GET__ $thisvar`
+
+        if [ "$3" = "i0" ]; then
+            __RET__=`__GET__ __GLOBAL__ "$thisvar"`
+        else
+            __RET__="$thisvar"
+        fi
     fi
 
-
-    # echo "GETFIELD: $__RET__"
     __RETCODE__ $__RET__
     return $?
 }

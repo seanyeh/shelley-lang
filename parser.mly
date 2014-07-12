@@ -55,7 +55,7 @@ return_stmt:
 
 expr_stmt:
     testlist {$1}
-|   id ASN testlist { Asn(Var($1), $3) }
+|   test ASN testlist { Asn($1, $3) }
 
 testlist:
     test {$1}
@@ -116,7 +116,7 @@ power:
     atom {$1}
 |   power trailer_func {FuncCall($1, $2)}
 |   power trailer_subscript {Subscript($1, $2)}
-|   power trailer_dot {Dot($1, $2)}
+|   power trailer_dot {Dot($1, $2, false)}
 
 trailer_subscript:
     LBRACKET expr_stmt RBRACKET { $2 }
