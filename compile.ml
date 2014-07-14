@@ -48,6 +48,9 @@ let global_scope =
 let temp_scope = Scope("__TEMP", None, Hashtbl.create 10)
 
 
+let self_scope = Scope("`__GETSCOPE__ \`__VAL__ $TEMPSELF\``", None, Hashtbl.create 10)
+
+
 (* Returns scoped_string, scope *)
 let rec find_in_scope ?(check = true) scope var = match var with
 |   BuiltinId(id, _) ->
@@ -61,7 +64,10 @@ let rec find_in_scope ?(check = true) scope var = match var with
 |   Id(id) ->
         (match scope with
     |   None ->
-            raise (Failure ("Undefined variable: " ^ id))
+            if id = "self" then
+                "self", None
+            else
+                raise (Failure ("Undefined variable: " ^ id))
     |   Scope(name, parent, vars_tbl) as curr_scope ->
             if (not check) || (Hashtbl.mem vars_tbl id) then(
                 (* (print_endline ("Found in scope: " ^ (string_of_id curr_scope id))); *)
@@ -377,16 +383,19 @@ and bytecode_of_asn ?(expr_type = "") expr1 val_expr scope =
 
 
     (* if expr1 is Dot, then get *)
-    let pre_stmts, var = match expr1 with
+    let pre_stmts, var, myscope = match expr1 with
     | Dot(e1, v, is_asn) ->
             let temp_stmt = Asn(Var(BuiltinId("TEMPFUN", true)), Dot(e1, v, true)) in
             let temp_stmts, _ = bytecode_of_expr temp_stmt scope in
+
+            let temp_stmt2 = Asn(Var(BuiltinId("TEMPSELF", true)), e1) in
+            let temp_stmts2, _ = bytecode_of_expr temp_stmt2 scope in
             (* let temp_stmts, temp_bexpr = bytecode_of_expr e1 scope in *)
 
             (* Can we assume temp_bexpr is always __RET__? *)
-            temp_stmts, TempId("$TEMPFUN", None)
+            temp_stmts @ temp_stmts2, TempId("$TEMPFUN", None), self_scope
 
-    | Var(v) -> [], v
+    | Var(v) -> [], v, scope
     in
 
 
@@ -421,12 +430,12 @@ and bytecode_of_asn ?(expr_type = "") expr1 val_expr scope =
             let _, return_id = bytecode_of_expr (Var(__RET__)) scope in
             pre_stmts @
                 (bytecode_of_funccall fid fexpr_list scope)
-                @ [_assign_id_ var return_id scope ~expr_type:expr_type]
+                @ [_assign_id_ var return_id myscope ~expr_type:expr_type]
 
         (* Otherwise, e is Lit, Id, or Binop *)
     |   e -> let pre_stmts2, bexpr = bytecode_of_expr e scope in
             pre_stmts @
-            pre_stmts2 @ [_assign_id_ var bexpr scope ~expr_type:expr_type]
+            pre_stmts2 @ [_assign_id_ var bexpr myscope ~expr_type:expr_type]
 
 
 (* Return list of Bytecode.bstmt *)

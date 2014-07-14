@@ -114,6 +114,8 @@ __FUNCCALL__() {
     __TEMP__t=`__PRINTF__ $1 | head -c 1`
     __TEMP__v=`__VAL__ "$1"`
 
+    # echo "DEBUG: __FUNCCALL__ $@"
+
     if [ "$__TEMP__t" = "f" ]; then
         # If function does not exist
         type $__TEMP__v > /dev/null 2>&1
@@ -175,6 +177,14 @@ __GETFIELD__(){
 }
 
 
+__GETSCOPE__(){
+    length=`__STR__length "$1"`
+
+    index=`expr index \`__PRINTF__ "$1" | rev\` "__"`
+
+
+    __PRINTF__ "$1" | head -c `expr $length - 1 - $index`
+}
 
 
 # Global temp stuff
