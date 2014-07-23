@@ -503,11 +503,9 @@ and bytecode_of_stmt stmt scope = match stmt with
         (* TODO: rename method to something else *)
         let hack_TEMP = Expr(RawExpr("varname=\"$1\"")) in
 
-        (* let eval_stmt =  *)
-        (*     Expr(RawFuncCall("eval", ["\"__F__GLOBAL__Array__`__VAL__ $method` \"$@\"\""])) in *)
-
         let init_func_id =
-            Var(BuiltinId("f__F__GLOBAL__Array__init $varname $2", false)) in
+            (* Var(BuiltinId("f__F__GLOBAL__Array__init $varname $2", false)) in *)
+            Var(BuiltinId("f__F__GLOBAL__Array__init $@", false)) in
         let init_func =
             FuncCall(init_func_id, []) in
         let return_stmt =

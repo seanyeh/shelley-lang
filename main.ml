@@ -10,11 +10,19 @@ let compile_string source =
 
     compile lexbuf
 
+let compile_file filename =
+    let lexbuf = Lexing.from_channel (open_in filename) in
+
+    compile lexbuf
+
 
 let _ =
-    let lexbuf = Lexing.from_channel stdin in
-    (* let stdlib = compile_string Stdlib.stdlib_source in *)
-    let stdlib = "" in
-    let result = Stdlib.sh_source ^ "\n" ^ stdlib ^ "\n" ^ (compile lexbuf) in
+    let stdlib_source =
+        List.fold_left (fun acc x -> acc ^ "\n" ^ (compile_file x))
+        "" Stdlib.stdlib_files in
+    let stdlib = Stdlib.sh_source ^ "\n" ^ stdlib_source in
+
+    let stdin_lexbuf = Lexing.from_channel stdin in
+    let result = stdlib ^ "\n" ^ (compile stdin_lexbuf) in
 
     print_endline result
