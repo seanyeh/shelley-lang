@@ -157,7 +157,7 @@ __GETFIELD__(){
 
     # echo "function: $funcname"
     # If function does not exist, then assume field is a variable
-    type $funcname > /dev/null 2>&1
+    type `__VAL__ $funcname` > /dev/null 2>&1
     if [ $? -ne 0 ] ; then
         # TODO: error checking?
 
@@ -185,6 +185,25 @@ __GETSCOPE__(){
 
     __PRINTF__ "$1" | head -c `expr $length - 1 - $index`
 }
+
+
+
+
+str_get (){
+    i=`expr 1 + $2`
+    __PRINTF__ "$1" | head -c $i | tail -c 1
+}
+
+str_get_ascii (){
+    printf "%d" \'`str_get "$1" "$2"`
+}
+
+
+str_length (){
+    __PRINTF__ "$1" | wc -c
+}
+
+
 
 
 # Global temp stuff

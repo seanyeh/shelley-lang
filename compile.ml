@@ -498,14 +498,15 @@ and bytecode_of_stmt stmt scope = match stmt with
         bytecode_of_asn (Var(temp_id)) expr scope @
         [Bytecode.BIf(scoped_id, bstmt_list)]
 
-|   ClassDef(cid, stmts) ->
+|   ClassDef(cvar, stmts) ->
         (* First argument to class function is the class method *)
         (* TODO: rename method to something else *)
         let hack_TEMP = Expr(RawExpr("varname=\"$1\"")) in
 
+        let cid = id_of_var cvar in
+
         let init_func_id =
-            (* Var(BuiltinId("f__F__GLOBAL__Array__init $varname $2", false)) in *)
-            Var(BuiltinId("f__F__GLOBAL__Array__init $@", false)) in
+            Var(BuiltinId("f__F__GLOBAL__" ^ cid ^ "__init $@", false)) in
         let init_func =
             FuncCall(init_func_id, []) in
         let return_stmt =
@@ -514,7 +515,7 @@ and bytecode_of_stmt stmt scope = match stmt with
 
         let new_stmts = [hack_TEMP] @ stmts @ [return_stmt] in
 
-        let classfunc = FuncDef(cid, [], new_stmts) in
+        let classfunc = FuncDef(cvar, [], new_stmts) in
 
         bytecode_of_stmt classfunc scope
 
