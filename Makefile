@@ -7,7 +7,7 @@ js_byte:
 	$(ocamlbuild) main_js.byte
 
 js: js_byte
-	js_of_ocaml main_js.byte -I . -file stdlib.sh:/
+	js_of_ocaml main_js.byte -I . -file stdlib.sh:/ -o web/shelley_js.js
 
 .PHONY : clean
 clean:

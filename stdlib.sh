@@ -17,7 +17,7 @@ __F__GLOBAL__print() {
 }
 
 
-# should write stdlib in shelly I think
+# should write stdlib in shelley I think
 # __LOGICAL__ op e1 e2
 
 # __COMPARE__() {
