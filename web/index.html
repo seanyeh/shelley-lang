@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>The Shelley Language</title>
+    <meta charset="utf-8" />
+
+    <!-- zepto -->
+    <script
+          src="//cdnjs.cloudflare.com/ajax/libs/zepto/1.1.4/zepto.min.js"></script>
+
+    <!-- purecss.io -->
+    <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.5.0/pure-min.css">
+
+    <!-- codemirror -->
+    <link rel="stylesheet" href="lib/codemirror.css">
+    <link rel="stylesheet" href="fold/foldgutter.css" />
+    <script src="lib/codemirror.js"></script>
+    <script src="mode/python/python.js"></script>
+    <script src="mode/shell/shell.js"></script>
+    <script src="fold/foldcode.js"></script>
+    <script src="fold/foldgutter.js"></script>
+    <script src="fold/brace-fold.js"></script>
+    <script src="fold/comment-fold.js"></script>
+
+    <!-- main -->
+    <script src="shelley_js.js"></script>
+    <link rel="stylesheet" href="style.css">
+
+    <link rel="icon" href="http://seanyeh.com/favicon.ico">
+</head>
+
+<body>
+    <h1>Shelley</h1>
+    <h4>A Python-like language that compiles to shell</h4>
+    <a href="https://github.com/seanyeh/shelley-lang"><img style="position:
+        absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/38ef81f8aca64bb9a64448d0d70f1308ef5341ab/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6461726b626c75655f3132313632312e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png"></a>
+
+
+    <div id="space"></div>
+    <div class="pure-g">
+        <div class="pure-u-1-1">
+            <a id="compile-button" class="pure-button" href="#">Compile</a>
+            <a id="compile-std-button" class="pure-button" href="#">Compile
+                with standard library</a>
+        </div>
+        <div id="editor1" class="pure-u-1-2">
+        </div>
+        <div id="editor2" class="pure-u-1-2">
+        </div>
+    </div>
+
+
+    <script src="main.js"></script>
+</body>
+</html>

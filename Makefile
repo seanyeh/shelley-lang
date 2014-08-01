@@ -8,6 +8,7 @@ js_byte:
 
 js: js_byte
 	js_of_ocaml main_js.byte -I . -file stdlib.sh:/ -file stdlib/stdlib.shly:/ -o web/shelley_js.js
+	chmod 755 web/shelley_js.js
 
 .PHONY : clean
 clean:
