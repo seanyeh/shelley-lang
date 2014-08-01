@@ -34,7 +34,6 @@ var compile = function(includeStdlib){
         compiled = shlycompile(editor.getValue());
         compiledString += compiled.bytes;
     } catch (e){
-        console.log(e);
         var error = e[1][1].bytes;
         if (e[2] && e[2].bytes){
             error += ": " + e[2].bytes;

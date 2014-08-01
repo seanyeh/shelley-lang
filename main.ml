@@ -13,8 +13,13 @@ let compile lexbuf =
 
         let error =
             "line " ^ (string_of_int line) ^ ", char " ^ (string_of_int cnum) ^
-            ":\'" ^ tok ^ "\'" in
-        raise (Failure error)
+            ":\'" ^ tok ^ "\'\n" in
+
+        let new_exn = match exn with
+        |   Failure(msg) -> Failure(error ^ msg)
+        |   _ -> Failure(error)
+        in
+        raise new_exn
       end
 
 let compile_string source =
