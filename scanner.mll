@@ -99,6 +99,8 @@ rule token =
 
     | "class "                  { CLASS }
 
+    | "pass"                    { PASS }
+
 
     | "```" ([^'`']*("`"[^'`'])*)* "```" as s  {
                                     let len = String.length s in

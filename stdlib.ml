@@ -3,7 +3,8 @@ let sh_files =
     ["stdlib.sh"]
 
 let stdlib_files =
-    ["stdlib.shly"]
+    ["stdlib/stdlib.shly"]
+    (* "stdlib/array.shly"] *)
 
 let get_contents filename =
     let chan = open_in filename in

@@ -1,4 +1,9 @@
-%{ open Ast %}
+%{ open Ast
+
+let parse_error s = (* Called by the parser function on error *)
+  print_endline s;
+  flush stdout
+%}
 
 %token PLUS MINUS TIMES DIVIDE EOF ASN SEMI END_STMT
 %token DEF INDENT DEDENT COLON COMMA RPAREN LPAREN RETURN
@@ -8,6 +13,8 @@
 %token IF
 
 %token CLASS
+
+%token PASS
 
 %token <int> LITERAL
 %token <string> ID
@@ -47,6 +54,7 @@ simple_stmt:
 small_stmt:
     expr_stmt {Expr($1)}
 |   flow_stmt {$1}
+|   PASS      {NoStmt}
 
 flow_stmt: return_stmt {$1}
 

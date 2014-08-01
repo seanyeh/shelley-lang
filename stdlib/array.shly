@@ -2,23 +2,16 @@ class Array:
     def init(self):
         ```
         tempfirstarg="$1"
-        echo "DEBUG: args: $@"
         str="a"
         shift
         for item in $@; do
-            echo "DEBUG: item is:$item"
             str="$str""$item""\037"
         done
         ```
         self.array = ```"$str"```
-        print("self.array in init:", self.array)
-        #
-        # return ```a`__VAL__ $2`__`__VAL__ $1` ```
-        #
         return ```a`__VAL__ $tempfirstarg` ```
     def size(self):
         identity(self.array)
-        print("size: self.array is: ",self.array)
         ```
         length=0
         level=0
@@ -44,9 +37,53 @@ class Array:
         done
         ```
         return ```i"$length"```
+    def get(self, index):
+        identity(self.array)
+        ```str="$__RET__"```
+        identity(index)
+        ```
+        i=`__VAL__ "$__RET__"`
+        str_counter=1
+        level=0
+        item_counter=0
+        state=""
+        item_buffer=""
+        item=""
+        while [ "$item_counter" -le "$i" ] && [ $str_counter -lt `str_length "$str"` ]; do
+            c=`str_get "$str" $str_counter`
+            c_ascii=`str_get_ascii "$str" $str_counter`
+            if [ "$c_ascii" = "31" ]; then
+                [ "$state" = "SEP" ] && level=`expr $level - 1`
+                if [ $level -eq 0 ]; then
+                    item_counter=`expr 1 + $item_counter`
+                    item="$item_buffer"
+                    item_buffer=""
+                else
+                    item_buffer="$item_buffer""$c"
+                fi
+                state="SEP"
+            elif [ "$state" != "item" ] && [ "$c" = "a" ]; then
+                level=`expr 1 + $level`
+                state="a"
+                item_buffer="$item_buffer""$c"
+            else
+                item_buffer="$item_buffer""$c"
+                state="item"
+            fi
+            str_counter=`expr 1 + $str_counter`
+        done
+        if [ $item_counter -gt "$i" ]; then
+            result="$item"
+        else
+            result="NOT FOUND"
+        fi
+        ```
+        return ```"$result"```
 
 
-a = Array("__GLOBAL__instance1", "item1","item2")
+a = Array("__GLOBAL__asdf", "item1","item2")
 print("a is:",a)
 print("arr is:",a.array)
 print("arr size:", a.size())
+print("first item:", a.get(0))
+print("second item:", a.get(1))

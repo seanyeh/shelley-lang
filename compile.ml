@@ -504,7 +504,6 @@ and bytecode_of_stmt stmt scope = match stmt with
         let hack_TEMP = Expr(RawExpr("varname=\"$1\"")) in
 
         let cid = id_of_var cvar in
-
         let init_func_id =
             Var(BuiltinId("f__F__GLOBAL__" ^ cid ^ "__init $@", false)) in
         let init_func =
