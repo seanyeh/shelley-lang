@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>The Shelley Language</title>
+    <meta charset="utf-8" />
+
+    <!-- zepto -->
+    <script
+          src="//cdnjs.cloudflare.com/ajax/libs/zepto/1.1.4/zepto.min.js"></script>
+
+    <!-- purecss.io -->
+    <link rel="stylesheet" href="pure-min.css">
+
+    <!-- codemirror -->
+    <link rel="stylesheet" href="lib/codemirror.css">
+    <link rel="stylesheet" href="fold/foldgutter.css" />
+    <script src="lib/codemirror.js"></script>
+    <script src="mode/python/python.js"></script>
+    <script src="mode/shell/shell.js"></script>
+    <script src="fold/foldcode.js"></script>
+    <script src="fold/foldgutter.js"></script>
+    <script src="fold/brace-fold.js"></script>
+    <script src="fold/comment-fold.js"></script>
+
+    <!-- main -->
+    <script src="shelley_js.js"></script>
+    <link rel="stylesheet" href="style.css">
+
+    <link rel="icon" href="http://seanyeh.com/favicon.ico">
+</head>
+
+<body>
+    <h1>Shelley</h1>
+    <h4>A Python-like language that compiles to shell</h4>
+    <a href="https://github.com/seanyeh/shelley-lang"><img decoding="async" style="position: absolute; top: 0; right: 0; border: 0;" width="149" height="149" src="https://github.blog/wp-content/uploads/2008/12/forkme_right_darkblue_121621.png?resize=149%2C149" class="attachment-full size-full" alt="Fork me on GitHub" loading="lazy" data-recalc-dims="1"></a>
+    <div id="space"></div>
+    <div class="pure-g">
+        <div class="pure-u-1-1">
+            <a id="compile-button" class="pure-button" href="#">Compile</a>
+            <a id="compile-std-button" class="pure-button" href="#">Compile
+                with standard library</a>
+        </div>
+        <div id="editor1" class="pure-u-1-2">
+        </div>
+        <div id="editor2" class="pure-u-1-2">
+        </div>
+    </div>
+
+
+    <script src="main.js"></script>
+</body>
+</html>
